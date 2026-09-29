@@ -8,16 +8,19 @@ When you finish a paper's notes, copy any strong gaps or ideas here and link bac
 
 | Gap | Source paper(s) | How our work could address it | Priority |
 |---|---|---|---|
-| Tokenizer fragmentation of Bantu words is discussed but never measured (no fertility or morpheme-boundary metrics) | [Parvess 2023](notes/2023-parvess-bantuberta.md) | WP0 fragmentation study and WP1 metrics | High |
+| Tokenizers for African languages judged only by downstream accuracy; no fertility or morpheme-boundary metrics | [Parvess 2023](notes/2023-parvess-bantuberta.md), [Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md), [Ndomba 2024](notes/2024-ndomba-swahili-tokenizer.md) | WP0 fragmentation study and WP1 metrics | High |
 | Language-family grouping only tested by pretraining from scratch, which fails with little data | [Parvess 2023](notes/2023-parvess-bantuberta.md) | Test family/typology grouping with adapters on a strong existing model (WP3) | High |
 | "Typology" treated as family membership only (static, categorical) | [Parvess 2023](notes/2023-parvess-bantuberta.md) | Learned typology vectors (WP2); Guthrie zones as an extra static baseline | Medium |
-| Single runs, copied baselines, no significance tests | [Parvess 2023](notes/2023-parvess-bantuberta.md) | 3+ seeds, same fine-tuning setup for all baselines, significance tests | Medium |
+| Tokenizers never tested inside a transformer (only bag-of-tokens classifiers) | [Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md), [Ndomba 2024](notes/2024-ndomba-swahili-tokenizer.md) | Evaluate tokenization changes inside the model (WP1) | High |
+| Single runs, copied baselines, no significance tests | [Parvess 2023](notes/2023-parvess-bantuberta.md), [Ndomba 2024](notes/2024-ndomba-swahili-tokenizer.md) | 3+ seeds, same fine-tuning setup for all baselines, significance tests | Medium |
 
 ## Recurring themes
 
 <!-- Patterns across several papers, e.g. "most work uses multilingual tokenizers that fragment agglutinative words". -->
 
 - Swahili dominates "Bantu" resources; other Bantu languages get a small share ([Parvess 2023](notes/2023-parvess-bantuberta.md))
+- African multilingual models/tokenizers (AfroXLMR, AfriBERTa, Serengeti) beat global ones (XLM-R, mBERT) on African languages ([Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md))
+- Linguistic explanations (loanwords, tone, "linguistic bonds") are offered but not measured ([Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md), [Parvess 2023](notes/2023-parvess-bantuberta.md))
 
 ## Ideas to try
 
@@ -30,4 +33,6 @@ When you finish a paper's notes, copy any strong gaps or ideas here and link bac
 |---|---|---|---|---|
 | BantuBERTa | Model (125M encoder) | 15 Bantu (+ Oromo) | [Parvess 2023](notes/2023-parvess-bantuberta.md) | [HF](https://huggingface.co/dsfsi/BantuBERTa) |
 | ANTC (African News Topic Classification) | Benchmark | incl. Zulu, Lingala | [Parvess 2023](notes/2023-parvess-bantuberta.md) | [Alabi et al. 2022](https://aclanthology.org/2022.coling-1.382) |
+| Serengeti | Model / tokenizer | 517 African languages | [Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md) | [ACL Anthology](https://aclanthology.org/2023.findings-acl.97) |
+| NaijaSenti | Dataset (sentiment) | Hausa, Yoruba, Igbo, Pidgin | [Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md) | [LREC 2022](https://aclanthology.org/2022.lrec-1.63) |
 | NCHLT text corpora | Dataset (clean text) | 9 South African Bantu languages | [Parvess 2023](notes/2023-parvess-bantuberta.md) | [SADiLaR](https://repo.sadilar.org/) |

@@ -4,7 +4,7 @@
 HOW TO USE
 1. Copy this file into "literature review/notes/" and name it: YYYY-firstauthor-shortname.md
    (example: 2024-ndomba-swahili-tokenizer.md)
-2. Fill in the sections below. Delete any prompts you don't need.
+2. Fill in the sections below. Keep it short: one-line bullets, a table for key numbers, skip sections that don't apply.
 3. Add a row for the paper in "literature review/reading-log.md".
 4. Copy any gaps or ideas worth following up into "literature review/gaps-and-ideas.md".
 -->
