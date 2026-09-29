@@ -1,0 +1,37 @@
+# Papers are usually under publisher copyright: keep PDFs local
+literature review/papers/*.pdf
+
+# Research proposal: kept private
+docs/proposal/
+
+# Datasets: too large and often licence-restricted
+data/raw/*
+data/processed/*
+!data/**/.gitkeep
+
+# Model checkpoints and large outputs
+*.ckpt
+*.pt
+*.bin
+*.safetensors
+checkpoints/
+wandb/
+runs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Office lock files
+~$*
