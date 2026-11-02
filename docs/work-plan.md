@@ -36,7 +36,7 @@ Every work package reports two settings: **in-language** (train and test on the 
 
 ### Main outputs (by end of January 2027)
 
-1. **Paper 1 (WP1, RQ1):** morpheme-preserving embeddings/adapters, in-language and cross-lingual. Submitted to ARR January 2027 cycle for ACL 2027.
+1. **Paper 1 (WP1, RQ1):** morpheme-preserving embeddings/adapters, in-language and cross-lingual. Submitted to the ARR January 2027 cycle for ACL 2027 (deadline 4 Jan 2027).
 2. **Project report:** one section per RQ with the result and its limits (RQ2 to RQ4 as pilots), plus the plan for the full studies.
 3. Open-source release: code, adapters, typology vectors and evaluation scripts.
 
@@ -115,7 +115,7 @@ Core languages only (swa, kin, lug, zul).
 - [ ] Evaluate intrinsically (fertility, boundary F1) and on tasks (MasakhaNER 2.0, MasakhaPOS, SIB-200) at matched parameter budgets, 3 seeds, including the no-regression check for G2
 - [ ] **Cross-lingual transfer (G3, December):** take the best adapter, the main ablation and standard LoRA, train on each source language, and evaluate on the other three with the WP0 protocol (zero-shot, 100 and 1k examples). Check whether preserving morphemes helps transfer, and whether it helps more for nearby targets (e.g. swa → kin)
 - [ ] Measure peak GPU memory and throughput for every setting (goal G7)
-- [ ] Freeze main results by 15 Dec 2026, then write and submit Paper 1 to ARR (January 2027 cycle, for ACL 2027)
+- [ ] Freeze main results by 23 Nov 2026 (supervisor's schedule), draft by 18 Dec, submit Paper 1 to ARR on 4 Jan 2027 (for ACL 2027)
 
 ### WP2: Dynamic latent typology (RQ2, pilot) (Dec 2026 – early Jan 2027)
 
@@ -147,7 +147,7 @@ RQ2 is judged by whether the discovered typology **helps parameter-efficient tra
 
 ### WP5: Write-up and release (Jan 2027)
 
-- [ ] Paper 1 submitted to ARR (check the exact January date as soon as it is announced; there is no buffer after it)
+- [ ] Paper 1 submitted to ARR (deadline 4 Jan 2027 for long and short papers; there is no buffer after it)
 - [ ] Project report: one section per RQ with result, limits and what a full study needs
 - [ ] Release code on GitHub, adapters and typology vectors on Hugging Face, and a model card for each adapter
 
@@ -169,15 +169,22 @@ RQ2 is judged by whether the discovered typology **helps parameter-efficient tra
 
 ### Key milestones
 
-| Date                        | Milestone                                                                                                                                       |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 30 Nov 2026                 | Baselines on all 6 languages and fragmentation study done; 30-pair zero-shot transfer matrix ready for the RQ2 pilot; ≥15 papers in reading log |
-| 4 Dec 2026                  | Raw-text samples for the 6 languages prepared and the RQ2 encoder training started (WP2 needs this early to finish in the window)               |
-| 15 Dec 2026                 | WP1 in-language results frozen (G1, G2); adapter ready for the RQ4 pilot                                                                        |
-| 22 Dec 2026                 | WP1 cross-lingual transfer results frozen (G3); the baseline matrix from 30 Nov is already enough for the RQ2 pilot                             |
-| 8 Jan 2027                  | All pilot experiments frozen (RQ2, RQ3, RQ4)                                                                                                    |
-| Mid Jan 2027 (ARR date TBA) | Paper 1 submitted (ARR January cycle, for ACL 2027)                                                                                             |
-| 31 Jan 2027                 | Project report answering RQ1 to RQ4, code and adapters released                                                                                 |
+Dates from 26 Oct to 31 Jan follow the supervisor's revised schedule. Rows marked (proposed) are ours and not yet agreed.
+
+| Date                  | Milestone                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 26 Oct 2026           | State of the art on African and Asian low-resource languages, focused on recent papers (2024 to 2026)                                                      |
+| 2 Nov 2026            | Baselines on 6 languages and fragmentation study done; 30-pair transfer matrix ready; experiment pipeline, datasets and metrics defined (SIB-200 first, then NER and POS) |
+| 9 Nov 2026            | First preliminary WP1 in-language results (G1, G2)                                                                                                         |
+| 23 Nov 2026           | WP1 in-language results frozen (G1, G2); WP1 transfer results frozen (G3)                                                                                  |
+| 30 Nov 2026           | WP1 transfer results frozen (G3). Listed on both 23 Nov and 30 Nov in the supervisor's table; confirm which date holds                                     |
+| 4 Dec 2026 (proposed) | RQ2 raw-text samples prepared and RQ2 encoder training started                                                                                             |
+| 18 Dec 2026           | First draft of the paper                                                                                                                                   |
+| 30 Dec 2026           | Draft paper discussion                                                                                                                                     |
+| 4 Jan 2027            | Paper submitted to ARR for ACL 2027                                                                                                                        |
+| 15 Jan 2027 (proposed)| RQ2, RQ3 and RQ4 pilots frozen (the supervisor's table has no pilot dates)                                                                                 |
+| 31 Jan 2027           | Project report answering RQ1 to RQ4; code and adapters released                                                                                            |
+
 
 ---
 
@@ -185,7 +192,7 @@ RQ2 is judged by whether the discovered typology **helps parameter-efficient tra
 
 | Venue                                                                     | When / where                                                      | Deadline                                                                      | Fit                                                               | Plan                                                                                                |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [ACL 2027](https://2027.aclweb.org/)                                      | 17–22 Aug 2027, Kyoto, Japan                                      | [ARR](https://aclrollingreview.org/dates) January 2027 cycle (exact date TBA) | Top-tier main conference; Multilinguality and Low-resource tracks | **Paper 1 (WP1, RQ1)**                                                                              |
+| [ACL 2027](https://2027.aclweb.org/)                                      | 17–22 Aug 2027, Kyoto, Japan                                      | [ARR](https://aclrollingreview.org/dates) January 2027 cycle (4 Jan 2027)             | Top-tier main conference; Multilinguality and Low-resource tracks | **Paper 1 (WP1, RQ1)**                                                                              |
 | [AfricaNLP Workshop](https://africanlp.masakhane.io/)                     | 2027 edition **(expected)**; 2026 was at EACL, Rabat, 28 Mar 2026 | Usually ~2–3 months before the host conference                                | Main African NLP venue; Masakhane community                       | Optional early paper from the WP0 fragmentation study, only if the deadline falls inside the window |
 | [SIGTYP Workshop](https://sigtyp.github.io/workshop.html)                 | 2027 edition **(expected)**                                       | TBA                                                                           | Computational typology: exact fit for RQ2                         | Future: full RQ2 paper (Section 9)                                                                  |
 | EMNLP 2027 (site not live yet; see [EMNLP 2026](https://2026.emnlp.org/)) | Early Nov 2027, Mexico / Central America (tentative)              | ARR ~May 2027 cycle **(expected)**                                            | Top-tier; PEFT                                                    | Future: full RQ3 paper (Section 9)                                                                  |
@@ -295,11 +302,11 @@ The schedule is tight: the three pilots overlap with the WP1 write-up. If time r
 | RQ2 pilot has only 6 languages and 2 families (30 transfer pairs), so it cannot show general typology discovery          | High       | Medium | Report it as a pilot on a clear contrast; claim only "works or does not work here". Future work adds more languages and Grambank probing (Section 9)                                                                            |
 | Amharic differs in script, corpus size and domain as well as morphology, so the vectors may only detect script           | High       | High   | Script control with romanised Amharic; simple-statistics baseline; report NER-only and POS-only matrices; if the vectors collapse to script, report that as the RQ2 result                                                      |
 | Amharic data is thin and mixed (NER from MasakhaNER 1.0, ~1k-sentence POS treebank), so its rows in the matrix are noisy | Medium     | Medium | Footnote the sources; give Amharic POS less weight; add Hausa (clean NER, POS, news) as the second contrast language                                                                                                            |
-| Pilots do not fit in 6 weeks alongside Paper 1                                                                           | High       | High   | Fixed cut order (RQ4 pilot, then rank allocation, then rest of RQ3); all pilots share the WP0 baselines and data loaders; freeze experiments on 8 Jan                                                                           |
+| Pilots do not fit in 6 weeks alongside Paper 1                                                                           | High       | High   | Fixed cut order (RQ4 pilot, then rank allocation, then rest of RQ3); all pilots share the WP0 baselines and data loaders; freeze experiments on 15 Jan                                                                           |
 | Gold morphology missing for most languages                                                                               | High       | Medium | Use unsupervised Morfessor as the default; gold segmentation (NCHLT, maybe the KinyaBERT analyser) only for evaluation and one ablation                                                                                         |
 | Dataset gaps: no MasakhaNEWS for kin/zul; some coverage entries unchecked                                                | Medium     | Low    | Use SIB-200 for topic classification; finish the benchmark table by checking every `?` cell in Week 1                                                                                                                           |
 | Not enough compute in 4 months                                                                                           | Medium     | High   | Smallest model that works, 3 seeds, apply for HPC in Month 1, budget a rented A100 as fallback                                                                                                                                  |
-| ARR January date arrives before results are final                                                                        | Medium     | High   | Freeze WP1 results on 15 Dec; write the paper from the WP0 fragmentation study and WP1 results only. Fallback: next ARR cycle or MRL workshop                                                                                   |
+| ARR deadline (4 Jan 2027) arrives before results are final                                                                       | Medium     | High   | Freeze WP1 results on 23 Nov; write the paper from the WP0 fragmentation study and WP1 results only. Fallback: next ARR cycle or MRL workshop                                                                                   |
 | Improvements are small or not significant                                                                                | Medium     | High   | 3 seeds, significance tests, report negative results; the fragmentation study alone is publishable                                                                                                                              |
 | Dataset licences (non-commercial)                                                                                        | Low        | Low    | Research use only; record licences in `data/README.md`                                                                                                                                                                          |
 
@@ -324,7 +331,8 @@ The schedule is tight: the three pilots overlap with the WP1 write-up. If time r
 - [ ] Check every `?` cell in the benchmark table (Section 2) against the dataset cards, including SIB-200 and WURA coverage for Amharic and Hausa
 - [ ] Load MasakhaNER 1.0 (Amharic) and UD_Amharic-ATT with the same label scheme as the other NER and POS sets, and write down the differences in `data/README.md`
 - [ ] Check KinyaBERT analyser availability and licence; check InkubaLM and BantuBERTa language coverage
-- [ ] Look up the exact ARR January 2027 deadline and put it in Section 4
+- [x] ARR January 2027 deadline: 4 Jan 2027 (now in Sections 4 and 5)
 - [ ] Create Kaggle and Hugging Face accounts; accept licences for gated models
 - [ ] Apply for HPC / cloud compute
-- [ ] Download MasakhaNER 2.0, MasakhaPOS and SIB-200 and run the first LoRA baseline on Kiswahili
+- [ ] Run the SIB-200 baseline (`src/sib200_baseline.py`, then `src/sib200_report.py`): 6 languages, full fine-tuning and LoRA, 3 seeds, 6x6 transfer matrix
+- [ ] Then add MasakhaNER (load the GitHub CoNLL files) and MasakhaPOS to the same pipeline
