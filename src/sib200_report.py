@@ -7,6 +7,7 @@ Writes summary.md and matrix_<method>_{acc,relative}.csv into the same folder.
 Accuracy matrix: rows = source (training) language, columns = target (test) language.
 Relative transfer = zero-shot accuracy on the target / in-language accuracy on the target.
 95% CIs come from bootstrapping the test items (they show how noisy a 204-item test set is).
+If the folder has an interpretation.md (hand-written notes), it is appended as the last section.
 """
 import argparse
 import json
@@ -16,6 +17,7 @@ from pathlib import Path
 import numpy as np
 
 ORDER = ["amh", "hau", "kin", "lug", "swa", "zul"]
+BANTU = {"kin", "lug", "swa", "zul"}
 
 
 def read(path):
@@ -96,6 +98,23 @@ def main():
         np.savetxt(d / f"matrix_{m}_acc.csv", M, delimiter=",", header=",".join(langs), fmt="%.2f", comments="")
         np.savetxt(d / f"matrix_{m}_relative.csv", R, delimiter=",", header=",".join(langs), fmt="%.4f", comments="")
 
+        # How much of the zero-shot matrix is about the target, the source, or the pair
+        off = ~np.eye(len(langs), dtype=bool)
+        X = np.where(off, M, np.nan)
+        tot = np.nanvar(X)
+        col = np.nanvar(np.where(off, np.nanmean(X, 0)[None, :], np.nan))
+        row = np.nanvar(np.where(off, np.nanmean(X, 1)[:, None], np.nan))
+        bantu = [i for i, l in enumerate(langs) if l in BANTU]
+        other = [i for i, l in enumerate(langs) if l not in BANTU]
+        within = [M[i, j] for i in bantu for j in bantu if i != j]
+        across = [M[i, j] for i in other for j in bantu]
+        lines += ["### Structure of the zero-shot matrix (off-diagonal cells)", "",
+                  md_table(["measure", "value"], [
+                      ["share of variance explained by the target (column means)", f"{100 * col / tot:.0f}%"],
+                      ["share of variance explained by the source (row means)", f"{100 * row / tot:.0f}%"],
+                      ["Bantu -> Bantu, mean acc %", f"{np.mean(within):.1f}" if within else "n/a"],
+                      ["amh/hau -> Bantu, mean acc %", f"{np.mean(across):.1f}" if across else "n/a"]]), ""]
+
         bad = [r for r in runs if r["method"] == m and r["collapsed"]]
         if bad:
             lines += [f"Collapsed runs (best dev acc < 0.3): " +
@@ -110,6 +129,19 @@ def main():
             if k in acc[a_m] and k in acc[b_m]:
                 rows.append([l, f"{(np.mean(acc[b_m][k]) - np.mean(acc[a_m][k])) * 100:+.1f}"])
         lines += [md_table(["lang", "difference"], rows), ""]
+
+        # Pooled over languages and seeds; paired bootstrap over test items (same items for both methods)
+        diff = np.stack([np.mean(corr[b_m][(l, l)], axis=0) - np.mean(corr[a_m][(l, l)], axis=0)
+                         for l in langs if (l, l) in corr[a_m] and (l, l) in corr[b_m]])
+        rng = np.random.default_rng(0)
+        idx = rng.integers(0, diff.shape[1], size=(2000, diff.shape[1]))
+        lo, hi = np.percentile(diff[:, idx].mean(axis=2).mean(axis=0), [2.5, 97.5]) * 100
+        lines += [f"Pooled over {len(diff)} languages and all seeds: {diff.mean() * 100:+.1f} points, "
+                  f"95% CI [{lo:+.1f}, {hi:+.1f}] (paired bootstrap over test items).", ""]
+
+    notes = d / "interpretation.md"
+    if notes.exists():
+        lines += ["## Interpretation", "", notes.read_text(encoding="utf-8").strip(), ""]
 
     (d / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))

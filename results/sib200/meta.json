@@ -1,0 +1,32 @@
+{
+  "args": {
+    "model": "Davlan/afro-xlmr-large-76L",
+    "methods": [
+      "full",
+      "lora"
+    ],
+    "langs": [
+      "amh",
+      "hau",
+      "kin",
+      "lug",
+      "swa",
+      "zul"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "epochs": 10,
+    "bs": 16,
+    "max_len": 128,
+    "lr_full": 2e-05,
+    "lr_lora": 0.0003,
+    "lora_r": 8,
+    "out": "/content/drive/MyDrive/typology-aware-peft/results/sib200",
+    "smoke": false
+  },
+  "torch": "2.11.0+cu130",
+  "gpu": "NVIDIA L4"
+}
