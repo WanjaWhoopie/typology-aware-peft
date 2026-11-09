@@ -103,6 +103,15 @@ for paper, year, lang, what in [
     LIT.append([paper, year, lang, "", "", None, "", what, "", "", None, "", "", "to extract from the PDF", "not yet"])
 
 
+def lit_best():
+    """Literature cells to bold: the top score (and its tokenizer) within each paper, language and dataset."""
+    groups = defaultdict(list)
+    for i, x in enumerate(LIT):
+        if x[10] is not None:
+            groups[(x[0], x[2], x[8])].append(i)
+    return {(max(g, key=lambda i: LIT[i][10]), j) for g in groups.values() if len(g) > 1 for j in (3, 10)}
+
+
 def style_sheet(ws, widths=None):
     for row in ws.iter_rows():
         for c in row:
@@ -113,8 +122,19 @@ def style_sheet(ws, widths=None):
         ws.column_dimensions[get_column_letter(i)].width = min(max(w + 2, 8), (widths or {}).get(i, 45))
 
 
-def table(ws, r, header, rows, fmts=None, title=None, note=None):
-    """Write a table at row r; returns the next free row (one blank row after)."""
+def best(rows, cols, pick=max):
+    """Cells to bold: the best value in each of the given columns, as (row index, column index) pairs."""
+    out = set()
+    for j in cols:
+        vals = [(row[j], i) for i, row in enumerate(rows) if isinstance(row[j], (int, float)) and not np.isnan(row[j])]
+        if vals:
+            out.add((pick(vals)[1], j))
+    return out
+
+
+def table(ws, r, header, rows, fmts=None, title=None, note=None, bold=()):
+    """Write a table at row r; returns the next free row (one blank row after).
+    bold: (row index, column index) pairs, both 0-based within the data rows, to show in bold."""
     if title:
         ws.cell(r, 1, title).font = TITLE
         r += 1
@@ -125,7 +145,7 @@ def table(ws, r, header, rows, fmts=None, title=None, note=None):
         c = ws.cell(r, j, h)
         c.font, c.fill = BOLD, HEAD
         c.alignment = Alignment(wrap_text=True, vertical="top")
-    for row in rows:
+    for i, row in enumerate(rows):
         r += 1
         for j, v in enumerate(row, 1):
             if isinstance(v, (np.floating, np.integer)):
@@ -135,6 +155,8 @@ def table(ws, r, header, rows, fmts=None, title=None, note=None):
             c = ws.cell(r, j, v)
             if fmts and j - 1 < len(fmts) and fmts[j - 1]:
                 c.number_format = fmts[j - 1]
+            if (i, j - 1) in bold:
+                c.font = BOLD
     return r + 2
 
 
@@ -174,17 +196,26 @@ def task_sheet(wb, name, task, folder):
                           "peak GPU GB", "minutes/run", "best epoch (mean)", "test items", "seeds"], rows,
                   [None, "0.0", "0.0", "0.0", "0.0", "0.00", "0.0", "0.0", "0.0", "0", "0"],
                   title=f"Method: {m}. In-language (train and test on the same language)",
-                  note="CI: bootstrap over test items (2,000 resamples), same resampled items for every seed.")
+                  note="CI: bootstrap over test items (2,000 resamples), same resampled items for every seed. "
+                       "Bold: best and weakest language.",
+                  bold={(i, j) for i, _ in best(rows, [1]) | best(rows, [1], min) for j in (0, 1)})
         M = np.array([[np.mean(sc[m][(s, t)]) * 100 if (s, t) in sc[m] else np.nan for t in langs] for s in langs])
         r = table(ws, r, ["source \\ target"] + langs, [[s] + list(M[i]) for i, s in enumerate(langs)],
                   [None] + ["0.0"] * len(langs), title=f"Method: {m}. Zero-shot transfer matrix, {metric} %",
-                  note="Rows = training (source) language, columns = test (target) language. Diagonal = in-language.")
+                  note="Rows = training (source) language, columns = test (target) language. Diagonal (bold) = in-language.",
+                  bold={(i, i + 1) for i in range(len(langs))})
         Rm = M / np.diag(M)[None, :]
         off = ~np.eye(len(langs), dtype=bool)
         rows = [[s] + list(Rm[i]) + [np.nanmean(Rm[i][off[i]])] for i, s in enumerate(langs)]
         rows.append(["mean as target"] + [np.nanmean(Rm[:, j][off[:, j]]) for j in range(len(langs))] + [None])
-        r = table(ws, r, ["source \\ target"] + langs + ["mean as source"], rows, [None] + ["0.00"] * (len(langs) + 1),
-                  title=f"Method: {m}. Relative transfer (zero-shot / target's in-language score)")
+        n = len(langs)
+        tgt = rows[-1][1:n + 1]
+        src = [x[n + 1] for x in rows[:-1]]
+        r = table(ws, r, ["source \\ target"] + langs + ["mean as source"], rows, [None] + ["0.00"] * (n + 1),
+                  title=f"Method: {m}. Relative transfer (zero-shot / target's in-language score)",
+                  note="Bold: best and worst source (last column), easiest and hardest target (last row).",
+                  bold={(n, 1 + int(np.nanargmax(tgt))), (n, 1 + int(np.nanargmin(tgt))),
+                        (int(np.nanargmax(src)), n + 1), (int(np.nanargmin(src)), n + 1)})
         X = np.where(off, M, np.nan)
         tot = np.nanvar(X)
         col = np.nanvar(np.where(off, np.nanmean(X, 0)[None, :], np.nan))
@@ -197,7 +228,8 @@ def task_sheet(wb, name, task, folder):
             [f"Bantu -> Bantu, mean {metric} %", np.mean([M[i, j] for i in bi for j in bi if i != j])],
             [f"amh/hau -> Bantu, mean {metric} %", np.mean([M[i, j] for i in oi for j in bi])],
             ["collapsed runs", ", ".join(f"{x['src']} seed {x['seed']}" for x in runs if x["method"] == m and x["collapsed"]) or "none"]],
-            [None, None], title=f"Method: {m}. Structure of the transfer matrix")
+            [None, None], title=f"Method: {m}. Structure of the transfer matrix",
+            bold={(0, 1), (1, 1), (2, 1), (3, 1)})
         for rr in range(r - 6, r - 4):
             ws.cell(rr, 2).number_format = "0%"
         for rr in range(r - 4, r - 2):
@@ -212,7 +244,9 @@ def task_sheet(wb, name, task, folder):
         rows.append(["pooled (6 languages, all seeds)", np.mean([x[1] for x in rows])])
         rows.append(["pooled 95% CI low", lo]); rows.append(["pooled 95% CI high", hi])
         r = table(ws, r, ["lang", "difference (points)"], rows, [None, "+0.0;-0.0;0.0"],
-                  title=f"{b_m} minus {a_m}, in-language {metric}", note="CI: paired bootstrap over test items.")
+                  title=f"{b_m} minus {a_m}, in-language {metric}",
+                  note="CI: paired bootstrap over test items. Bold: the pooled answer (a CI that spans 0 = no real difference).",
+                  bold={(len(rows) - k, j) for k in (1, 2, 3) for j in (0, 1)})
     else:
         ws.cell(r, 1, "LoRA runs not finished yet: the LoRA tables and LoRA minus full appear here after the rerun.").font = FONT
     style_sheet(ws, {1: 50})
@@ -240,7 +274,8 @@ def main():
             ["entity F1", "MasakhaNER span-level F1 (conlleval style)"],
             ["relative transfer", "zero-shot score / the target language's in-language score"],
             ["NLL per sentence", "masked-LM negative log-likelihood of a sentence, whole-word masking; parallel text, so comparable"],
-            ["full / lora", "full fine-tuning / LoRA r=8, alpha 16, query and value matrices"]]
+            ["full / lora", "full fine-tuning / LoRA r=8, alpha 16, query and value matrices"],
+            ["bold numbers", "the ones to read first; the note above each table says what its bold marks"]]
     table(ws, r, ["term", "definition"], defs, title="Definitions")
     style_sheet(ws, {1: 30, 2: 110})
 
@@ -258,37 +293,56 @@ def main():
     langs = list(dict.fromkeys(s["lang"] for s in stats))
     get = {(s["tokenizer"], s["lang"]): s for s in stats}
     r = 1
-    for key, label, fmt in [("fertility", "Fertility (tokens per word)", "0.00"),
-                            ("continued_words", "Continued words (share of words split)", "0%"),
-                            ("premium", "Token premium vs English", "0.00"),
-                            ("renyi_eff", "Renyi efficiency (alpha 2.5)", "0.000"),
-                            ("unk_rate", "Unknown-token rate", "0.00%")]:
-        r = table(ws, r, ["tokenizer", "vocab"] + langs,
-                  [[n, int(get[(n, "eng")]["vocab"])] + [float(get[(n, l)][key]) for l in langs] for n in names],
-                  [None, "#,##0"] + [fmt] * len(langs), title=label,
-                  note="Source: results/tokenizers/stats.csv (src/tokenizer_stats.py). Text: SIB-200, 1,004 parallel "
-                       "sentences per language." if r == 1 else None)
+    for key, label, fmt, pick in [("fertility", "Fertility (tokens per word)", "0.00", min),
+                                  ("continued_words", "Continued words (share of words split)", "0%", min),
+                                  ("premium", "Token premium vs English", "0.00", min),
+                                  ("renyi_eff", "Renyi efficiency (alpha 2.5)", "0.000", max),
+                                  ("unk_rate", "Unknown-token rate", "0.00%", None)]:
+        rows = [[n, int(get[(n, "eng")]["vocab"])] + [float(get[(n, l)][key]) for l in langs] for n in names]
+        cols = range(2, 2 + len(langs))
+        if pick:  # best tokenizer per language (not English, not where it is mostly unknown tokens), plus our model
+            ok = [[x[0], x[1]] + [v if float(get[(x[0], l)]["unk_rate"]) < 0.01 else np.nan for v, l in zip(x[2:], langs)]
+                  for x in rows]
+            hl = best(ok, [2 + k for k, l in enumerate(langs) if l != "eng"], pick) | \
+                {(i, 0) for i, x in enumerate(rows) if x[0].startswith("AfroXLMR")}
+            how = ("Bold: best tokenizer for each of our languages (ignoring 1% or more unknown tokens); "
+                   "AfroXLMR-76L is our model.")
+        else:  # unknown tokens: only problems are worth seeing
+            hl = {(i, j) for i, x in enumerate(rows) for j in cols if x[j] >= 0.01}
+            how = "Bold: 1% or more unknown tokens (the tokenizer cannot represent that language)."
+        r = table(ws, r, ["tokenizer", "vocab"] + langs, rows, [None, "#,##0"] + [fmt] * len(langs), title=label,
+                  note=("Source: results/tokenizers/stats.csv (src/tokenizer_stats.py). Text: SIB-200, 1,004 parallel "
+                        "sentences per language. " if r == 1 else "") + how, bold=hl)
     bnd = list(csv.DictReader(open(R / "tokenizers" / "boundaries.csv", encoding="utf-8")))
+    rows = [[b["tokenizer"], b["lang"], int(b["words_scored"]), int(b["words"])] +
+            [float(b[k]) for k in ("chance_p", "boundary_p", "boundary_r", "boundary_f1", "exact_match",
+                                   "tokens_per_word", "morphemes_per_word")] for b in bnd]
     r = table(ws, r, ["tokenizer", "lang", "words scored", "words in gold set", "chance precision", "boundary precision",
-                      "boundary recall", "boundary F1", "exact match", "tokens/word", "morphemes/word"],
-              [[b["tokenizer"], b["lang"], int(b["words_scored"]), int(b["words"])] +
-               [float(b[k]) for k in ("chance_p", "boundary_p", "boundary_r", "boundary_f1", "exact_match",
-                                      "tokens_per_word", "morphemes_per_word")] for b in bnd],
+                      "boundary recall", "boundary F1", "exact match", "tokens/word", "morphemes/word"], rows,
               [None, None, "#,##0", "#,##0", "0.00", "0.00", "0.00", "0.00", "0%", "0.00", "0.00"],
               title="Morpheme boundaries vs gold segmentation (isiZulu only: no gold set found for swa, kin, lug)",
               note="Source: results/tokenizers/boundaries.csv. Gold: NCHLT isiZulu surface segmentations as prepared by "
-                   "Moeng et al. 2021 (github.com/TumiMoeng/MORPH_SEGMENT). Chance precision = precision of random cuts.")
+                   "Moeng et al. 2021 (github.com/TumiMoeng/MORPH_SEGMENT). Chance precision = precision of random cuts. "
+                   "Bold: the chance baseline, the best boundary F1, and our model's F1.",
+              bold={(0, 4)} | best(rows, [7]) | {(i, j) for i, x in enumerate(rows) if x[0].startswith("AfroXLMR")
+                                                 for j in (0, 7)})
     morf = list(csv.DictReader(open(R / "tokenizers" / "morfessor.csv", encoding="utf-8")))
-    r = table(ws, r, ["lang", "corpus weight", "training word types", "dev F1", "test precision", "test recall", "test F1",
-                      "test exact match", "test pieces/word", "all gold words F1"],
-              [[m["lang"], float(m["corpus_weight"]), int(m["train_types"])] +
-               [float(m[k]) for k in ("dev_boundary_f1", "test_boundary_p", "test_boundary_r", "test_boundary_f1",
-                                      "test_exact_match", "test_morphs_per_word", "all_boundary_f1")] for m in morf],
-              [None, "0.00", "#,##0", "0.000", "0.00", "0.00", "0.000", "0%", "0.00", "0.000"],
+    chosen = max(range(len(morf)), key=lambda i: float(morf[i]["dev_boundary_f1"]))
+    rows = [[m["lang"], float(m["corpus_weight"]), "yes" if i == chosen else "", int(m["train_types"])] +
+            [float(m[k]) for k in ("dev_boundary_f1", "test_boundary_p", "test_boundary_r", "test_boundary_f1",
+                                   "test_exact_match", "test_morphs_per_word", "all_boundary_f1")]
+            for i, m in enumerate(morf)]
+    r = table(ws, r, ["lang", "corpus weight (Morfessor setting: lower = more cuts)", "chosen (best dev F1)",
+                      "training word types", "dev F1", "test precision", "test recall", "test F1", "test exact match",
+                      "test pieces/word", "all gold words F1"], rows,
+              [None, "0.00", None, "#,##0", "0.000", "0.00", "0.00", "0.000", "0%", "0.00", "0.000"],
               title="Morfessor (unsupervised segmenter) vs isiZulu gold: can it serve as silver for swa, kin, lug?",
-              note="Source: results/tokenizers/morfessor.csv (src/morfessor_silver.py). Trained on WURA isiZulu "
+              note="Every row is the same method (Morfessor Baseline, same isiZulu text); only the corpus weight differs. "
+                   "Source: results/tokenizers/morfessor.csv (src/morfessor_silver.py). Trained on WURA isiZulu "
                    "(3.3M words, top 100k types). Weight chosen on gold dev words, scored on held-out gold test words. "
-                   "Gold: 3.51 morphemes per word. Compare 'all gold words F1' with the tokenizer table above.")
+                   "Gold: 3.51 morphemes per word. Compare 'all gold words F1' with the tokenizer table above. "
+                   "Bold: the chosen setting.",
+              bold={(chosen, j) for j in (1, 2, 4, 7, 10)})
     cols = ["tokenizer", "repo", "algorithm", "vocab", "lang", "sentences", "words", "tokens", "fertility",
             "continued_words", "chars_per_token", "unk_rate", "premium", "renyi_eff"]
     table(ws, r, cols, [[s[c] if i < 3 or c == "lang" else float(s[c]) for i, c in enumerate(cols)] for s in stats],
@@ -315,7 +369,8 @@ def main():
           [None, "0", "0.0", "0.0", "0.00", "0.00", "0.00", "0.0"],
           title="Masked-LM pseudo-perplexity of AfroXLMR-76L on the SIB-200 test sentences",
           note="Source: results/pppl/sentences.jsonl (src/pseudo_perplexity.py). Lower NLL = model predicts the text better. "
-               "Same 204 sentences in every language.")
+               "Same 204 sentences in every language. Bold: Luganda, the outlier.",
+          bold={(i, j) for i, x in enumerate(rows) if x[0] == "lug" for j in (0, 2, 4, 7)})
     style_sheet(ws, {1: 12})
 
     ws = wb.create_sheet("Literature")
@@ -324,7 +379,9 @@ def main():
           LIT, [None, "0", None, None, None, "#,##0", None, None, None, None, "0.0"],
           title="Numbers reported in papers (state of the art)",
           note="One row per reported number. 'AI-drafted' rows come from the reading notes and must be checked against "
-               "the PDF. Numbers from different papers are not directly comparable (setups differ): see the comparable column.")
+               "the PDF. Numbers from different papers are not directly comparable (setups differ): see the comparable column. "
+               "Bold: best tokenizer within each paper, language and dataset.",
+          bold=lit_best())
     style_sheet(ws, {1: 38, 7: 32, 8: 40, 13: 36})
     ws.freeze_panes = "B4"
 
@@ -340,7 +397,8 @@ def main():
     table(ws, 1, ["task", "method", "seed", "source", "best dev score %", "best epoch", "epochs", "learning rate",
                   "batch size", "trainable %", "trainable params", "peak GPU GB", "minutes", "collapsed"], rows,
           [None, None, "0", None, "0.0", "0", "0", "0.0E+00", "0", "0.00", "#,##0", "0.0", "0.0"],
-          title="Every training run", note="Source: results/<task>/runs.jsonl. GPU: NVIDIA L4 (Colab).")
+          title="Every training run", note="Source: results/<task>/runs.jsonl. GPU: NVIDIA L4 (Colab). Bold: collapsed runs.",
+          bold={(i, j) for i, x in enumerate(rows) if x[-1] for j in range(len(x))})
     style_sheet(ws)
     ws.freeze_panes = "A4"
 
