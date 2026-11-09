@@ -268,6 +268,27 @@ def main():
                   [None, "#,##0"] + [fmt] * len(langs), title=label,
                   note="Source: results/tokenizers/stats.csv (src/tokenizer_stats.py). Text: SIB-200, 1,004 parallel "
                        "sentences per language." if r == 1 else None)
+    bnd = list(csv.DictReader(open(R / "tokenizers" / "boundaries.csv", encoding="utf-8")))
+    r = table(ws, r, ["tokenizer", "lang", "words scored", "words in gold set", "chance precision", "boundary precision",
+                      "boundary recall", "boundary F1", "exact match", "tokens/word", "morphemes/word"],
+              [[b["tokenizer"], b["lang"], int(b["words_scored"]), int(b["words"])] +
+               [float(b[k]) for k in ("chance_p", "boundary_p", "boundary_r", "boundary_f1", "exact_match",
+                                      "tokens_per_word", "morphemes_per_word")] for b in bnd],
+              [None, None, "#,##0", "#,##0", "0.00", "0.00", "0.00", "0.00", "0%", "0.00", "0.00"],
+              title="Morpheme boundaries vs gold segmentation (isiZulu only: no gold set found for swa, kin, lug)",
+              note="Source: results/tokenizers/boundaries.csv. Gold: NCHLT isiZulu surface segmentations as prepared by "
+                   "Moeng et al. 2021 (github.com/TumiMoeng/MORPH_SEGMENT). Chance precision = precision of random cuts.")
+    morf = list(csv.DictReader(open(R / "tokenizers" / "morfessor.csv", encoding="utf-8")))
+    r = table(ws, r, ["lang", "corpus weight", "training word types", "dev F1", "test precision", "test recall", "test F1",
+                      "test exact match", "test pieces/word", "all gold words F1"],
+              [[m["lang"], float(m["corpus_weight"]), int(m["train_types"])] +
+               [float(m[k]) for k in ("dev_boundary_f1", "test_boundary_p", "test_boundary_r", "test_boundary_f1",
+                                      "test_exact_match", "test_morphs_per_word", "all_boundary_f1")] for m in morf],
+              [None, "0.00", "#,##0", "0.000", "0.00", "0.00", "0.000", "0%", "0.00", "0.000"],
+              title="Morfessor (unsupervised segmenter) vs isiZulu gold: can it serve as silver for swa, kin, lug?",
+              note="Source: results/tokenizers/morfessor.csv (src/morfessor_silver.py). Trained on WURA isiZulu "
+                   "(3.3M words, top 100k types). Weight chosen on gold dev words, scored on held-out gold test words. "
+                   "Gold: 3.51 morphemes per word. Compare 'all gold words F1' with the tokenizer table above.")
     cols = ["tokenizer", "repo", "algorithm", "vocab", "lang", "sentences", "words", "tokens", "fertility",
             "continued_words", "chars_per_token", "unk_rate", "premium", "renyi_eff"]
     table(ws, r, cols, [[s[c] if i < 3 or c == "lang" else float(s[c]) for i, c in enumerate(cols)] for s in stats],

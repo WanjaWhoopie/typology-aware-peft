@@ -57,5 +57,20 @@ Text: SIB-200 (FLORES) sentences, 1,004 per language, the same content in every 
 | mBERT | 119,547 | 94.70% | 2.48% | 2.77% | 1.47% | 0.17% | 0.13% | 0.17% |
 | mT5 | 250,100 | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% |
 
+## Morpheme boundaries (gold surface segmentation)
+
+| tokenizer | lang | words scored | boundary precision | boundary recall | boundary F1 | exact match | tokens/word | morphemes/word |
+|---|---|---|---|---|---|---|---|---|
+| AfroXLMR-76L | zul | 11,392 of 11,392 | 0.41 | 0.36 | 0.38 | 5% | 3.23 | 3.51 |
+| Serengeti | zul | 11,392 of 11,392 | 0.49 | 0.25 | 0.33 | 5% | 2.28 | 3.51 |
+| AfriBERTa | zul | 11,392 of 11,392 | 0.39 | 0.44 | 0.41 | 4% | 3.85 | 3.51 |
+| BantuBERTa | zul | 10,251 of 11,392 | 0.58 | 0.22 | 0.32 | 4% | 1.98 | 3.57 |
+| mBERT | zul | 11,392 of 11,392 | 0.31 | 0.35 | 0.33 | 3% | 3.80 | 3.51 |
+| mT5 | zul | 11,392 of 11,392 | 0.43 | 0.32 | 0.37 | 5% | 2.87 | 3.51 |
+
+Precision: share of token boundaries that are morpheme boundaries. Recall: share of morpheme boundaries the tokenizer also cuts at. Words whose pieces do not spell the word (byte-level pieces, unknown tokens) are not scored.
+
+Chance precision (zul): 0.30, the share of positions inside a word that are morpheme boundaries, i.e. the precision of cutting at random.
+
 Not loaded (gated or broken): InkubaLM (`lelapa/InkubaLM-0.4B`, OSError), Llama-3.1 (`meta-llama/Llama-3.1-8B`, OSError), Gemma-2 (`google/gemma-2-2b`, OSError)
 
