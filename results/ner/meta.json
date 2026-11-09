@@ -1,0 +1,36 @@
+{
+  "args": {
+    "task": "ner",
+    "model": "Davlan/afro-xlmr-large-76L",
+    "methods": [
+      "full",
+      "lora"
+    ],
+    "langs": [
+      "amh",
+      "hau",
+      "kin",
+      "lug",
+      "swa",
+      "zul"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "epochs": 5,
+    "bs": 16,
+    "max_len": 256,
+    "lr_full": 2e-05,
+    "lr_lora": 0.0003,
+    "lora_r": 8,
+    "raw": "data/raw",
+    "out": "/content/drive/MyDrive/typology-aware-peft/results/ner",
+    "smoke": false,
+    "metric": "f1",
+    "collapse": 0.2
+  },
+  "torch": "2.11.0+cu130",
+  "gpu": "NVIDIA L4"
+}
