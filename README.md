@@ -18,29 +18,29 @@ Details: [`results/sib200/interpretation.md`](results/sib200/interpretation.md),
 | 3. Is it cheap enough? (goal G7) | The project promises methods that run on one 16 GB GPU. | LoRA trains 0.33% of the parameters, peaks at 4.4 GB against 11.3 GB, and takes about 43 s per run against about 140 s |
 | 4. How well does a model trained on one language work on the others? (the 6x6 zero-shot transfer matrix) | RQ2 needs to know whether related languages (the four Bantu ones) help each other more than unrelated ones (Amharic, Hausa). | Transfer is almost as good as in-language (92 to 102%). The target language explains about 95% of the variation and the source almost none. No Bantu advantage: Bantu sources reach about 79% on Bantu targets, Amharic and Hausa sources about 80% |
 
-### 2. Named entity recognition, MasakhaNER (baseline, full fine-tuning done, LoRA pending)
+### 2. Named entity recognition, MasakhaNER (baseline, done)
 
 Details: [`results/ner/summary.md`](results/ner/summary.md), workbook tab "NER". MasakhaNER 2.0 for five languages, MasakhaNER 1.0 for Amharic.
 
 | question | why it matters | what we found |
 |---|---|---|
 | 1. How well does the unchanged model do on each language? | Reference score for a task that depends on word forms, where tokenization should matter more than for topic labels. | Entity F1 78% (Amharic) to 92% (Swahili). Luganda is not weak here (89.5%), so its SIB-200 weakness is specific to that task or dataset |
-| 2. Does LoRA match full fine-tuning? | Same check as for SIB-200, on a harder task. | Not known yet: the LoRA runs crashed on a Colab library clash (fixed); 18 runs to rerun |
-| 3. Is it cheap enough? (goal G7) | Same as SIB-200. | Full fine-tuning peaks at 11.3 GB and takes 3 to 14 minutes per run; LoRA figures follow with the rerun |
-| 4. How well does transfer work across languages? | RQ2: do related languages help each other more? | Transfer is much weaker than for topics: 45 to 92% of the in-language score. The target explains 81% of the variation, the source 6%. A small Bantu advantage: Bantu sources reach 65.3 F1 on Bantu targets, Amharic and Hausa sources 60.2. isiZulu and Amharic are the hardest targets (about 50% of in-language) |
+| 2. Does LoRA match full fine-tuning? | Same check as for SIB-200, on a harder task. | Not quite: LoRA is 3.3 points lower, 95% CI [−3.7, −2.9], a small but real gap. It is lower on every language, from −1.0 (Swahili) to −5.4 (Luganda). Both methods often peaked in their last (5th) epoch, so both may be slightly undertrained |
+| 3. Is it cheap enough? (goal G7) | Same as SIB-200. | Yes: LoRA trains 0.14% of the parameters, peaks at 3.8 to 5.3 GB against 11.3 GB, and runs about 3.4 times faster (1 to 4 minutes against 3 to 14) |
+| 4. How well does transfer work across languages? | RQ2: do related languages help each other more? | Full fine-tuning shown; LoRA gives the same pattern. Transfer is much weaker than for topics: 45 to 92% of the in-language score. The target explains 81% of the variation, the source 6%. A small Bantu advantage: Bantu sources reach 65.3 F1 on Bantu targets, Amharic and Hausa sources 60.2. isiZulu and Amharic are the hardest targets (about 50% of in-language) |
 
-### 3. Part-of-speech tagging, MasakhaPOS (baseline, full fine-tuning done, LoRA pending)
+### 3. Part-of-speech tagging, MasakhaPOS (baseline, done)
 
 Details: [`results/pos/summary.md`](results/pos/summary.md), workbook tab "POS". MasakhaPOS for five languages; UD Amharic-ATT for Amharic, split 70/10/20 by us.
 
 | question | why it matters | what we found |
 |---|---|---|
 | 1. How well does the unchanged model do on each language? | Reference score for the most morphology-sensitive of our three tasks. | Accuracy 90% (isiZulu) to 98% (Kinyarwanda). Luganda is again not weak (92.3%) |
-| 2. Does LoRA match full fine-tuning? | Same check as for SIB-200. | Not known yet: LoRA runs to rerun (18 runs) |
-| 3. Is it cheap enough? (goal G7) | Same as SIB-200. | Full fine-tuning peaks at 11.3 GB and takes about 2.5 minutes per run; LoRA figures follow with the rerun |
-| 4. How well does transfer work across languages? | RQ2: do related languages help each other more? | Transfer reaches 42 to 80% of the in-language score. The target explains 44% of the variation and the source 30%, so here the source language matters. A clear Bantu advantage: Bantu sources reach 66.1% on Bantu targets, Amharic and Hausa sources 50.0% |
+| 2. Does LoRA match full fine-tuning? | Same check as for SIB-200. | Almost: LoRA is 0.8 points lower, 95% CI [−1.0, −0.7]. The gap is real but small, largest for Amharic (−1.8) |
+| 3. Is it cheap enough? (goal G7) | Same as SIB-200. | Yes: LoRA trains 0.14% of the parameters, peaks at 3.4 to 4.8 GB against 11.3 GB, and takes about 45 s per run against about 155 s |
+| 4. How well does transfer work across languages? | RQ2: do related languages help each other more? | Full fine-tuning shown; LoRA gives the same pattern (Bantu sources 65.2% on Bantu targets against 47.2%). Transfer reaches 42 to 80% of the in-language score. The target explains 44% of the variation and the source 30%, so here the source language matters. A clear Bantu advantage: Bantu sources reach 66.1% on Bantu targets, Amharic and Hausa sources 50.0% |
 
-Across the three tasks, the more a task depends on word structure (topics, then entities, then parts of speech), the weaker zero-shot transfer gets and the more language relatedness helps. This is the pattern RQ2 builds on.
+Across the three tasks, the more a task depends on word structure (topics, then entities, then parts of speech), the weaker zero-shot transfer gets and the more language relatedness helps. This is the pattern RQ2 builds on. LoRA follows the same order: no loss on topics, 0.8 points on parts of speech, 3.3 points on entities. That is a small but consistent cost on word-level tasks, which a typology-aware adapter should aim to close.
 
 ### 4. Why is Luganda weak on SIB-200? (diagnostic, done)
 
