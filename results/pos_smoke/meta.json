@@ -1,0 +1,29 @@
+{
+  "args": {
+    "task": "pos",
+    "model": "Davlan/afro-xlmr-base",
+    "methods": [
+      "lora"
+    ],
+    "langs": [
+      "swa",
+      "amh"
+    ],
+    "seeds": [
+      1
+    ],
+    "epochs": 1,
+    "bs": 16,
+    "max_len": 256,
+    "lr_full": 2e-05,
+    "lr_lora": 0.0003,
+    "lora_r": 8,
+    "raw": "data/raw",
+    "out": "results/pos_smoke",
+    "smoke": true,
+    "metric": "acc",
+    "collapse": 0.5
+  },
+  "torch": "2.10.0+cu126",
+  "gpu": null
+}
