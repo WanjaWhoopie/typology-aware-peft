@@ -4,7 +4,7 @@
     python src/token_report.py --task ner [--dir results/ner]
 
 Same layout as src/sib200_report.py. Scores are entity-level F1 (NER) or accuracy (POS), in %.
-95% CIs come from bootstrapping test sentences (the same resampled sentences for every seed).
+95% CIs come from bootstrapping test sentences (the same resampled sentences for every seed) and seeds.
 If the folder has an interpretation.md (hand-written notes), it is appended as the last section.
 """
 import argparse
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from sib200_report import BANTU, ORDER, md_table, read
+from sib200_report import BANTU, ORDER, md_table, read, resample_seeds
 
 
 def total(task, items):
@@ -25,11 +25,14 @@ def total(task, items):
     return s[..., 0] / s[..., 1]
 
 
-def boot(task, per_seed, n=2000, seed=0):
-    """per_seed: seeds x sentences x k. Bootstrap distribution of the seed-averaged score."""
+def boot(task, per_seed, n=2000, seed=0, arm=0):
+    """per_seed: seeds x sentences x k. Bootstrap distribution of the seed-averaged score: test sentences are
+    resampled (the same resamples for every seed and both arms of a comparison, so comparisons are paired) and
+    seeds are redrawn with replacement in every resample (independently per arm), so the interval also covers
+    run-to-run variation. With 3 seeds that part is coarse."""
     a = np.asarray(per_seed, dtype=float)
     idx = np.random.default_rng(seed).integers(0, a.shape[1], size=(n, a.shape[1]))
-    return np.stack([total(task, s[idx]) for s in a]).mean(axis=0)  # n
+    return resample_seeds(np.stack([total(task, s[idx]) for s in a]), seed, arm)
 
 
 def main():
@@ -124,14 +127,14 @@ def main():
             k = (l, l)
             if k in sc[a_m] and k in sc[b_m]:
                 rows.append([l, f"{(np.mean(sc[b_m][k]) - np.mean(sc[a_m][k])) * 100:+.1f}"])
-                # paired: the same resampled sentences for both methods (same seed in boot)
-                diffs.append(boot(task, items[b_m][k]) - boot(task, items[a_m][k]))
+                # paired over sentences (same seed in boot); seeds drawn independently per method (arm)
+                diffs.append(boot(task, items[b_m][k], arm=1) - boot(task, items[a_m][k]))
         lines += [md_table(["lang", "difference"], rows), ""]
         pooled = np.mean(diffs, axis=0)
         point = np.mean([float(r[1]) for r in rows])
         lo, hi = np.percentile(pooled, [2.5, 97.5]) * 100
         lines += [f"Pooled over {len(rows)} languages and all seeds: {point:+.1f} points, "
-                  f"95% CI [{lo:+.1f}, {hi:+.1f}] (paired bootstrap over test sentences).", ""]
+                  f"95% CI [{lo:+.1f}, {hi:+.1f}] (bootstrap over test sentences, paired, and over seeds).", ""]
 
     notes = d / "interpretation.md"
     if notes.exists():

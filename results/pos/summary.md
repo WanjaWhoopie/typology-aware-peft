@@ -10,12 +10,12 @@ Data: MasakhaPOS (hau, kin, lug, swa, zul); UD_Amharic-ATT for amh, split 70/10/
 
 | lang | accuracy % (mean ± sd over seeds) | 95% CI (test sentences) | trainable % | peak GPU GB | seconds/run | best epoch (mean) | test sentences | seeds |
 |---|---|---|---|---|---|---|---|---|
-| amh | 93.7 ± 0.5 | [92.7, 94.6] | 100.00 | 11.2 | 145 | 6.7 | 216 | 3 |
-| hau | 93.1 ± 0.2 | [92.7, 93.6] | 100.00 | 11.3 | 162 | 6.3 | 601 | 3 |
+| amh | 93.7 ± 0.5 | [92.5, 94.8] | 100.00 | 11.2 | 145 | 6.7 | 216 | 3 |
+| hau | 93.1 ± 0.2 | [92.6, 93.6] | 100.00 | 11.3 | 162 | 6.3 | 601 | 3 |
 | kin | 98.4 ± 0.0 | [98.1, 98.6] | 100.00 | 11.3 | 165 | 5.0 | 604 | 3 |
-| lug | 92.3 ± 0.3 | [91.7, 92.8] | 100.00 | 11.3 | 145 | 5.7 | 586 | 3 |
-| swa | 93.0 ± 0.1 | [92.6, 93.5] | 100.00 | 11.2 | 149 | 5.0 | 553 | 3 |
-| zul | 89.9 ± 0.1 | [89.2, 90.5] | 100.00 | 11.3 | 161 | 9.0 | 601 | 3 |
+| lug | 92.3 ± 0.3 | [91.6, 92.9] | 100.00 | 11.3 | 145 | 5.7 | 586 | 3 |
+| swa | 93.0 ± 0.1 | [92.5, 93.5] | 100.00 | 11.2 | 149 | 5.0 | 553 | 3 |
+| zul | 89.9 ± 0.1 | [89.2, 90.6] | 100.00 | 11.3 | 161 | 9.0 | 601 | 3 |
 
 ### Zero-shot transfer matrix: accuracy % (rows = source, columns = target)
 
@@ -55,12 +55,12 @@ Data: MasakhaPOS (hau, kin, lug, swa, zul); UD_Amharic-ATT for amh, split 70/10/
 
 | lang | accuracy % (mean ± sd over seeds) | 95% CI (test sentences) | trainable % | peak GPU GB | seconds/run | best epoch (mean) | test sentences | seeds |
 |---|---|---|---|---|---|---|---|---|
-| amh | 91.9 ± 0.4 | [90.8, 93.0] | 0.14 | 3.4 | 41 | 7.3 | 216 | 3 |
-| hau | 92.0 ± 0.2 | [91.5, 92.5] | 0.14 | 4.6 | 46 | 7.3 | 601 | 3 |
+| amh | 91.9 ± 0.4 | [90.6, 93.1] | 0.14 | 3.4 | 41 | 7.3 | 216 | 3 |
+| hau | 92.0 ± 0.2 | [91.4, 92.5] | 0.14 | 4.6 | 46 | 7.3 | 601 | 3 |
 | kin | 98.1 ± 0.2 | [97.8, 98.3] | 0.14 | 4.8 | 48 | 7.3 | 604 | 3 |
-| lug | 91.7 ± 0.1 | [91.2, 92.2] | 0.14 | 4.3 | 42 | 7.7 | 586 | 3 |
+| lug | 91.7 ± 0.1 | [91.2, 92.3] | 0.14 | 4.3 | 42 | 7.7 | 586 | 3 |
 | swa | 92.5 ± 0.1 | [92.0, 93.0] | 0.14 | 4.5 | 42 | 9.3 | 553 | 3 |
-| zul | 89.1 ± 0.2 | [88.4, 89.8] | 0.14 | 4.6 | 45 | 8.0 | 601 | 3 |
+| zul | 89.1 ± 0.2 | [88.4, 89.9] | 0.14 | 4.6 | 45 | 8.0 | 601 | 3 |
 
 ### Zero-shot transfer matrix: accuracy % (rows = source, columns = target)
 
@@ -105,5 +105,5 @@ Data: MasakhaPOS (hau, kin, lug, swa, zul); UD_Amharic-ATT for amh, split 70/10/
 | swa | -0.5 |
 | zul | -0.7 |
 
-Pooled over 6 languages and all seeds: -0.8 points, 95% CI [-1.0, -0.7] (paired bootstrap over test sentences).
+Pooled over 6 languages and all seeds: -0.8 points, 95% CI [-1.0, -0.7] (bootstrap over test sentences, paired, and over seeds).
 

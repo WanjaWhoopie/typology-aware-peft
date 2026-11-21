@@ -24,13 +24,25 @@ def read(path):
     return [json.loads(l) for l in Path(path).read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
-def boot_ci(arr, n=2000, seed=0):
-    """arr: seeds x items matrix of 0/1. CI of the seed-averaged accuracy, resampling items."""
+def resample_seeds(S, seed=0, arm=0):
+    """S: seeds x n bootstrap scores (one column per resample of the test items). Each resample also redraws the
+    seeds with replacement, so the interval covers run-to-run (seed) variation as well as test-set variation.
+    arm: 0 or 1; the two arms of a comparison draw their seeds independently (they share the item resamples)."""
+    k, n = S.shape
+    pick = np.random.default_rng(1000 + seed + arm).integers(0, k, size=(n, k))
+    return S[pick, np.arange(n)[:, None]].mean(axis=1)
+
+
+def boot_dist(arr, n=2000, seed=0, arm=0):
+    """arr: seeds x items matrix of 0/1. Bootstrap distribution of the seed-averaged accuracy, resampling test
+    items (the same resamples for every seed and arm) and seeds."""
     arr = np.asarray(arr, dtype=float)
-    rng = np.random.default_rng(seed)
-    idx = rng.integers(0, arr.shape[1], size=(n, arr.shape[1]))
-    boots = arr[:, idx].mean(axis=2).mean(axis=0)
-    return np.percentile(boots, [2.5, 97.5])
+    idx = np.random.default_rng(seed).integers(0, arr.shape[1], size=(n, arr.shape[1]))
+    return resample_seeds(arr[:, idx].mean(axis=2), seed, arm)
+
+
+def boot_ci(arr, n=2000, seed=0):
+    return np.percentile(boot_dist(arr, n, seed), [2.5, 97.5])
 
 
 def md_table(header, rows):
@@ -130,14 +142,13 @@ def main():
                 rows.append([l, f"{(np.mean(acc[b_m][k]) - np.mean(acc[a_m][k])) * 100:+.1f}"])
         lines += [md_table(["lang", "difference"], rows), ""]
 
-        # Pooled over languages and seeds; paired bootstrap over test items (same items for both methods)
-        diff = np.stack([np.mean(corr[b_m][(l, l)], axis=0) - np.mean(corr[a_m][(l, l)], axis=0)
-                         for l in langs if (l, l) in corr[a_m] and (l, l) in corr[b_m]])
-        rng = np.random.default_rng(0)
-        idx = rng.integers(0, diff.shape[1], size=(2000, diff.shape[1]))
-        lo, hi = np.percentile(diff[:, idx].mean(axis=2).mean(axis=0), [2.5, 97.5]) * 100
+        # Pooled over languages; bootstrap over test items (same items for both methods) and over seeds
+        both = [l for l in langs if (l, l) in corr[a_m] and (l, l) in corr[b_m]]
+        diff = np.stack([np.mean(corr[b_m][(l, l)], axis=0) - np.mean(corr[a_m][(l, l)], axis=0) for l in both])
+        pooled = np.mean([boot_dist(corr[b_m][(l, l)], arm=1) - boot_dist(corr[a_m][(l, l)]) for l in both], axis=0)
+        lo, hi = np.percentile(pooled, [2.5, 97.5]) * 100
         lines += [f"Pooled over {len(diff)} languages and all seeds: {diff.mean() * 100:+.1f} points, "
-                  f"95% CI [{lo:+.1f}, {hi:+.1f}] (paired bootstrap over test items).", ""]
+                  f"95% CI [{lo:+.1f}, {hi:+.1f}] (bootstrap over test items, paired, and over seeds).", ""]
 
     notes = d / "interpretation.md"
     if notes.exists():

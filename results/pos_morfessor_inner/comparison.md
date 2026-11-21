@@ -4,16 +4,16 @@ Model Davlan/afro-xlmr-large-76L, LoRA r=8, seeds 1-3, same hyperparameters. Met
 
 ## In-language
 
-| lang | LoRA | variant | difference | 95% CI (paired) | tokens/word |
+| lang | LoRA | variant | difference | 95% CI (sentences + seeds) | tokens/word |
 |---|---|---|---|---|---|
-| amh | 91.9 | 92.0 | +0.1 | [-0.4, +0.6] | 2.10 -> 2.44 |
-| hau | 92.0 | 90.8 | -1.2 | [-1.5, -0.9] | 1.55 -> 2.23 |
-| kin | 98.1 | 97.9 | -0.2 | [-0.3, -0.0] | 2.34 -> 2.76 |
-| lug | 91.7 | 91.2 | -0.5 | [-0.8, -0.2] | 2.44 -> 2.84 |
-| swa | 92.5 | 91.7 | -0.8 | [-1.0, -0.6] | 1.51 -> 2.22 |
-| zul | 89.1 | 88.8 | -0.3 | [-0.6, -0.0] | 2.43 -> 2.77 |
+| amh | 91.9 | 92.0 | +0.1 | [-0.7, +1.0] | 2.10 -> 2.44 |
+| hau | 92.0 | 90.8 | -1.2 | [-1.6, -0.8] | 1.55 -> 2.23 |
+| kin | 98.1 | 97.9 | -0.2 | [-0.4, +0.1] | 2.34 -> 2.76 |
+| lug | 91.7 | 91.2 | -0.5 | [-0.9, -0.1] | 2.44 -> 2.84 |
+| swa | 92.5 | 91.7 | -0.8 | [-1.1, -0.5] | 1.51 -> 2.22 |
+| zul | 89.1 | 88.8 | -0.3 | [-0.7, +0.1] | 2.43 -> 2.77 |
 
-Pooled over 6 languages and all seeds: -0.5 points, 95% CI [-0.6, -0.3] (paired bootstrap over test sentences).
+Pooled over 6 languages and all seeds: -0.5 points, 95% CI [-0.6, -0.3] (bootstrap over test sentences, paired, and seeds).
 
 ## Zero-shot transfer (off-diagonal)
 

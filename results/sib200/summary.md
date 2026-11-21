@@ -8,12 +8,12 @@ Model: Davlan/afro-xlmr-large-76L. Seeds per cell: [1, 2, 3]. Test set: 204 item
 
 | lang | acc % (mean ± sd over seeds) | 95% CI (test items) | macro-F1 % | trainable % | peak GPU GB | seconds/run | seeds |
 |---|---|---|---|---|---|---|---|
-| amh | 86.1 ± 1.2 | [81.9, 90.2] | 85.1 | 100.00 | 11.3 | 267 | 3 |
-| hau | 83.8 ± 0.7 | [79.4, 88.2] | 82.8 | 100.00 | 11.3 | 142 | 3 |
-| kin | 86.3 ± 2.1 | [82.2, 90.0] | 85.4 | 100.00 | 11.3 | 147 | 3 |
-| lug | 70.9 ± 2.1 | [65.4, 76.5] | 67.7 | 100.00 | 11.3 | 145 | 3 |
-| swa | 87.9 ± 1.2 | [83.8, 91.5] | 87.7 | 100.00 | 11.3 | 138 | 3 |
-| zul | 84.5 ± 2.2 | [79.9, 88.6] | 84.3 | 100.00 | 11.3 | 145 | 3 |
+| amh | 86.1 ± 1.2 | [81.4, 90.5] | 85.1 | 100.00 | 11.3 | 267 | 3 |
+| hau | 83.8 ± 0.7 | [78.9, 88.6] | 82.8 | 100.00 | 11.3 | 142 | 3 |
+| kin | 86.3 ± 2.1 | [81.2, 90.7] | 85.4 | 100.00 | 11.3 | 147 | 3 |
+| lug | 70.9 ± 2.1 | [64.7, 77.0] | 67.7 | 100.00 | 11.3 | 145 | 3 |
+| swa | 87.9 ± 1.2 | [83.3, 91.8] | 87.7 | 100.00 | 11.3 | 138 | 3 |
+| zul | 84.5 ± 2.2 | [79.1, 89.4] | 84.3 | 100.00 | 11.3 | 145 | 3 |
 
 ### Zero-shot transfer matrix: accuracy % (rows = source, columns = target)
 
@@ -53,12 +53,12 @@ Model: Davlan/afro-xlmr-large-76L. Seeds per cell: [1, 2, 3]. Test set: 204 item
 
 | lang | acc % (mean ± sd over seeds) | 95% CI (test items) | macro-F1 % | trainable % | peak GPU GB | seconds/run | seeds |
 |---|---|---|---|---|---|---|---|
-| amh | 88.1 ± 0.8 | [84.0, 92.0] | 87.2 | 0.33 | 4.4 | 43 | 3 |
-| hau | 86.6 ± 0.6 | [82.4, 90.5] | 85.9 | 0.33 | 4.4 | 43 | 3 |
-| kin | 85.0 ± 2.6 | [80.7, 88.7] | 84.0 | 0.33 | 4.6 | 44 | 3 |
-| lug | 70.1 ± 2.0 | [64.4, 75.5] | 67.2 | 0.33 | 4.4 | 43 | 3 |
-| swa | 88.7 ± 0.0 | [84.6, 92.5] | 88.5 | 0.33 | 4.2 | 43 | 3 |
-| zul | 85.3 ± 1.4 | [80.9, 89.2] | 84.3 | 0.33 | 4.6 | 44 | 3 |
+| amh | 88.1 ± 0.8 | [83.5, 92.2] | 87.2 | 0.33 | 4.4 | 43 | 3 |
+| hau | 86.6 ± 0.6 | [82.0, 91.0] | 85.9 | 0.33 | 4.4 | 43 | 3 |
+| kin | 85.0 ± 2.6 | [79.7, 90.2] | 84.0 | 0.33 | 4.6 | 44 | 3 |
+| lug | 70.1 ± 2.0 | [63.7, 76.3] | 67.2 | 0.33 | 4.4 | 43 | 3 |
+| swa | 88.7 ± 0.0 | [84.5, 92.7] | 88.5 | 0.33 | 4.2 | 43 | 3 |
+| zul | 85.3 ± 1.4 | [80.2, 89.7] | 84.3 | 0.33 | 4.6 | 44 | 3 |
 
 ### Zero-shot transfer matrix: accuracy % (rows = source, columns = target)
 
@@ -103,7 +103,7 @@ Model: Davlan/afro-xlmr-large-76L. Seeds per cell: [1, 2, 3]. Test set: 204 item
 | swa | +0.8 |
 | zul | +0.8 |
 
-Pooled over 6 languages and all seeds: +0.7 points, 95% CI [-0.7, +2.0] (paired bootstrap over test items).
+Pooled over 6 languages and all seeds: +0.7 points, 95% CI [-1.1, +2.4] (bootstrap over test items, paired, and over seeds).
 
 ## Interpretation
 

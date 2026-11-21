@@ -10,12 +10,12 @@ Data: MasakhaPOS (hau, kin, lug, swa, zul); UD_Amharic-ATT for amh, split 70/10/
 
 | lang | accuracy % (mean ± sd over seeds) | 95% CI (test sentences) | trainable % | peak GPU GB | seconds/run | best epoch (mean) | test sentences | seeds |
 |---|---|---|---|---|---|---|---|---|
-| amh | 92.0 ± 0.4 | [90.8, 93.1] | 0.14 | 3.4 | 41 | 9.0 | 216 | 3 |
-| hau | 90.8 ± 0.2 | [90.2, 91.3] | 0.14 | 5.5 | 58 | 9.7 | 601 | 3 |
+| amh | 92.0 ± 0.4 | [90.7, 93.3] | 0.14 | 3.4 | 41 | 9.0 | 216 | 3 |
+| hau | 90.8 ± 0.2 | [90.2, 91.4] | 0.14 | 5.5 | 58 | 9.7 | 601 | 3 |
 | kin | 97.9 ± 0.0 | [97.7, 98.1] | 0.14 | 5.1 | 54 | 7.3 | 604 | 3 |
 | lug | 91.2 ± 0.1 | [90.6, 91.8] | 0.14 | 4.5 | 43 | 7.3 | 586 | 3 |
 | swa | 91.7 ± 0.1 | [91.2, 92.3] | 0.14 | 5.5 | 56 | 8.7 | 553 | 3 |
-| zul | 88.8 ± 0.0 | [88.1, 89.5] | 0.14 | 4.9 | 47 | 9.0 | 601 | 3 |
+| zul | 88.8 ± 0.0 | [88.1, 89.6] | 0.14 | 4.9 | 47 | 9.0 | 601 | 3 |
 
 ### Zero-shot transfer matrix: accuracy % (rows = source, columns = target)
 

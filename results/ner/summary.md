@@ -10,12 +10,12 @@ Data: MasakhaNER 2.0 (hau, kin, lug, swa, zul); MasakhaNER 1.0 for amh (differen
 
 | lang | entity F1 % (mean ± sd over seeds) | 95% CI (test sentences) | trainable % | peak GPU GB | seconds/run | best epoch (mean) | test sentences | seeds |
 |---|---|---|---|---|---|---|---|---|
-| amh | 78.3 ± 0.5 | [75.1, 81.4] | 100.00 | 11.2 | 167 | 4.0 | 500 | 3 |
-| hau | 86.2 ± 0.3 | [85.1, 87.2] | 100.00 | 11.3 | 566 | 4.3 | 1633 | 3 |
-| kin | 87.6 ± 0.2 | [86.7, 88.6] | 100.00 | 11.3 | 817 | 4.7 | 2235 | 3 |
-| lug | 89.5 ± 0.8 | [88.3, 90.6] | 100.00 | 11.3 | 493 | 5.0 | 1412 | 3 |
+| amh | 78.3 ± 0.5 | [74.9, 81.6] | 100.00 | 11.2 | 167 | 4.0 | 500 | 3 |
+| hau | 86.2 ± 0.3 | [85.0, 87.3] | 100.00 | 11.3 | 566 | 4.3 | 1633 | 3 |
+| kin | 87.6 ± 0.2 | [86.6, 88.7] | 100.00 | 11.3 | 817 | 4.7 | 2235 | 3 |
+| lug | 89.5 ± 0.8 | [88.0, 90.9] | 100.00 | 11.3 | 493 | 5.0 | 1412 | 3 |
 | swa | 92.4 ± 0.0 | [91.7, 93.2] | 100.00 | 11.3 | 648 | 4.7 | 1883 | 3 |
-| zul | 89.2 ± 0.2 | [87.9, 90.5] | 100.00 | 11.3 | 574 | 4.3 | 1670 | 3 |
+| zul | 89.2 ± 0.2 | [87.8, 90.5] | 100.00 | 11.3 | 574 | 4.3 | 1670 | 3 |
 
 ### Zero-shot transfer matrix: entity F1 % (rows = source, columns = target)
 
@@ -55,12 +55,12 @@ Data: MasakhaNER 2.0 (hau, kin, lug, swa, zul); MasakhaNER 1.0 for amh (differen
 
 | lang | entity F1 % (mean ± sd over seeds) | 95% CI (test sentences) | trainable % | peak GPU GB | seconds/run | best epoch (mean) | test sentences | seeds |
 |---|---|---|---|---|---|---|---|---|
-| amh | 73.6 ± 0.5 | [70.0, 77.1] | 0.14 | 3.8 | 50 | 5.0 | 500 | 3 |
-| hau | 83.1 ± 0.4 | [81.9, 84.2] | 0.14 | 4.7 | 168 | 3.7 | 1633 | 3 |
+| amh | 73.6 ± 0.5 | [69.9, 77.2] | 0.14 | 3.8 | 50 | 5.0 | 500 | 3 |
+| hau | 83.1 ± 0.4 | [81.8, 84.3] | 0.14 | 4.7 | 168 | 3.7 | 1633 | 3 |
 | kin | 84.6 ± 0.1 | [83.5, 85.8] | 0.14 | 5.3 | 241 | 5.0 | 2235 | 3 |
-| lug | 84.1 ± 1.0 | [82.7, 85.5] | 0.14 | 4.7 | 146 | 4.0 | 1412 | 3 |
-| swa | 91.4 ± 0.2 | [90.6, 92.2] | 0.14 | 5.2 | 195 | 4.3 | 1883 | 3 |
-| zul | 86.5 ± 0.4 | [85.0, 88.0] | 0.14 | 4.7 | 173 | 4.7 | 1670 | 3 |
+| lug | 84.1 ± 1.0 | [82.3, 86.0] | 0.14 | 4.7 | 146 | 4.0 | 1412 | 3 |
+| swa | 91.4 ± 0.2 | [90.6, 92.3] | 0.14 | 5.2 | 195 | 4.3 | 1883 | 3 |
+| zul | 86.5 ± 0.4 | [84.9, 88.1] | 0.14 | 4.7 | 173 | 4.7 | 1670 | 3 |
 
 ### Zero-shot transfer matrix: entity F1 % (rows = source, columns = target)
 
@@ -105,5 +105,5 @@ Data: MasakhaNER 2.0 (hau, kin, lug, swa, zul); MasakhaNER 1.0 for amh (differen
 | swa | -1.0 |
 | zul | -2.8 |
 
-Pooled over 6 languages and all seeds: -3.3 points, 95% CI [-3.7, -2.9] (paired bootstrap over test sentences).
+Pooled over 6 languages and all seeds: -3.3 points, 95% CI [-3.9, -2.8] (bootstrap over test sentences, paired, and over seeds).
 

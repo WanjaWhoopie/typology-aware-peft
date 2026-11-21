@@ -1,14 +1,14 @@
 # Tokenization variants vs plain LoRA (NER and POS)
 
-All variants: LoRA r=8 on Davlan/afro-xlmr-large-76L, seeds 1-3, the settings and trainable parameters of the LoRA baseline; only the input differs. Differences in points; CIs are paired bootstraps over test sentences, pooled over 6 languages and seeds.
+All variants: LoRA r=8 on Davlan/afro-xlmr-large-76L, seeds 1-3, the settings and trainable parameters of the LoRA baseline; only the input differs. Differences in points; CIs bootstrap test sentences (paired) and seeds, pooled over 6 languages.
 
 ## Pooled
 
 | task | variant | in-language difference | 95% CI | zero-shot difference (30 cells) |
 |---|---|---|---|---|
-| NER | Morfessor, morphemes as separate words | -7.0 | [-7.5, -6.4] | -12.4 |
-| NER | Morfessor, cuts inside words | -3.9 | [-4.4, -3.4] | -3.9 |
-| NER | Serengeti vocabulary (FVT) | -5.8 | [-6.5, -5.2] | -4.5 |
+| NER | Morfessor, morphemes as separate words | -7.0 | [-7.8, -6.1] | -12.4 |
+| NER | Morfessor, cuts inside words | -3.9 | [-4.9, -2.8] | -3.9 |
+| NER | Serengeti vocabulary (FVT) | -5.8 | [-6.6, -5.1] | -4.5 |
 | POS | Morfessor, morphemes as separate words | -3.4 | [-3.6, -3.2] | -9.8 |
 | POS | Morfessor, cuts inside words | -0.5 | [-0.6, -0.3] | -2.3 |
 | POS | Serengeti vocabulary (FVT) | -2.3 | [-2.5, -2.1] | -5.3 |
@@ -48,26 +48,27 @@ All variants: LoRA r=8 on Davlan/afro-xlmr-large-76L, seeds 1-3, the settings an
 
 ## Interpretation
 
-None of the three input-side variants beats plain LoRA. They all keep the model, the LoRA settings and the trainable parameters, and change only how words reach the model. All 72 runs finished; none collapsed.
+None of the three input-side variants beats plain LoRA. They all keep the model, the LoRA settings and the trainable parameters, and change only how words reach the model. All 72 runs finished; none collapsed. CIs resample test sentences and seeds; with 3 seeds, the seed part is coarse.
 
-**1. Most of the first Morfessor attempt's loss came from the extra word starts, not from extra tokens.**
-- Keeping Morfessor's cuts inside words gives almost the same number of tokens per word (for example hau 2.23 against 2.24, zul 2.77 against 2.84).
-- Yet the loss is roughly halved for NER (−3.9 against −7.0) and nearly gone for POS (−0.5 against −3.4).
-- Zero-shot transfer recovers most (NER −3.9 against −12.4, POS −2.3 against −9.8).
-- Feeding each morpheme as a new word is what moved the input away from what the model knows.
+**Scope of these results.** Every variant was tested with the embeddings frozen and only LoRA trained. That keeps the trainable parameters equal to the baseline, but it leaves the model no way to absorb an input change. Published vocabulary swaps train the embeddings or the model after the swap. So these results show that the input changes do not help **without adaptation**. They do not show that input changes cannot help. The LoRA baseline itself may also be undertrained (most NER runs peaked in the last of 5 epochs), so all differences should be re-measured once the baselines are trained to convergence.
 
-**2. The remaining loss with cuts inside words is small for the Bantu languages and large where Morfessor is least reliable.**
-- In NER, kin, lug and zul lose 1.0 to 1.8 points, against 7.4 for hau and 9.2 for amh.
-- In POS every language is within 1.2 points, and Amharic is level (+0.1).
-- Forcing token boundaries onto morpheme boundaries is close to harmless where the cuts are good, but it does not help either. AfroXLMR's own pieces already carry what the task needs.
+**1. In the first Morfessor attempt, the extra word starts did most of the damage.**
+- The two Morfessor arms use the same cuts and almost the same number of tokens per word (for example hau 2.23 against 2.24, zul 2.77 against 2.84; amh differs, 2.44 against 2.77). The main difference between them is whether each morpheme starts a new word.
+- Keeping the cuts inside words roughly halves the NER loss (−3.9 against −7.0) and nearly removes the POS loss (−0.5 against −3.4).
+- Zero-shot transfer recovers most of its loss (NER −3.9 against −12.4, POS −2.3 against −9.8).
 
-**3. Serengeti's vocabulary (option B) shortens words a lot but costs accuracy, because many tokens get averaged vectors.**
+**2. Cutting inside words still loses a little, and these results cannot say whether better cuts would help.**
+- In NER, kin, lug and zul lose 1.0 to 1.8 points, against 7.4 for hau and 9.2 for amh. In POS every language is within 1.2 points, and Amharic is level (+0.1).
+- Morfessor is not a morpheme gold standard. On isiZulu gold its precision is 0.51, so about half its cuts are wrong. No gold exists for the other languages.
+- Whether cut quality matters is therefore untested. It would need a scrambled-cut control (same number of cuts at random positions) and a supervised segmenter (isiZulu only).
+
+**3. Serengeti's vocabulary (option B) shortens words a lot but costs accuracy with frozen embeddings.**
 - Tokens per word drop by about a third (for example zul 2.43 → 1.68, swa 1.51 → 1.08). Yet NER loses 5.8 points and POS 2.3.
-- The NER loss follows how many entity-word tokens are new to AfroXLMR, and so carry an averaged vector: amh 44% → −18.5, zul 37% → −5.9, kin 33% → −4.0, lug 32% → −3.1, hau 27% → −2.6, swa 24% → −0.9. That is a perfect rank order over six languages.
-- POS shows the same split: the languages with 46 to 50% new tokens (kin, lug, zul) lose 2.7 to 4.2 points, those with 33% (hau, swa) lose 0.9.
-- The vocabulary is not the problem. The averaged vectors are, and LoRA cannot change them because the embeddings stay frozen.
-- Tokenizer-transfer papers therefore train the new embeddings briefly before fine-tuning. That is the natural next step for option B: a short embedding-only masked-LM pass on the raw text, then the same LoRA runs.
+- About a third to a half of the tokens are new to AfroXLMR and carry only an average of their AfroXLMR pieces, which LoRA cannot change.
+- **Hypothesis, not a finding:** the NER loss rises with the share of new tokens in entity words (amh 44% → −18.5 down to swa 24% → −0.9). This measure was chosen after the all-token share did not line up, and there are only six languages. It needs testing, for example by training the embeddings and checking whether the loss shrinks most where the share is highest.
+- **A lead in the other direction:** NER transfer into isiZulu rises with Serengeti's vocabulary (lug→zul +7.9, swa→zul +7.5, hau→zul +3.4). Possible cause: isiZulu capitalises a name after its noun-class prefix (uMandela), and Serengeti keeps `▁uM andela` together where AfroXLMR splits `▁u Man dela`. These cells were noticed after looking at the table, so they are a lead to test, not a result.
+- Next step for option B: an adaptation ladder (frozen embeddings, then trainable embeddings, then a short masked-LM pass on raw text) with the same LoRA runs on top.
 
-**4. What this means for the thesis.**
-Changing only the input, while the representations stay fixed, costs accuracy. The cost is smallest when the change keeps the input close to what the model saw in pretraining. A morphology-aware method therefore has to adapt the model side as well (adapter weights, or embeddings), not just re-cut the words. This supports moving the morphology into the typology-aware adapter rather than into the tokenizer alone.
+**4. What this means for RQ1.**
+Without adaptation, changing how words reach the model costs accuracy. The cost is smallest when the input stays close to what the model saw in pretraining. Whether morpheme-aligned input helps once the model can adapt to it is still open, and it is the question the next experiments should answer. These results do not yet show that morphology must be handled on the model side.
 

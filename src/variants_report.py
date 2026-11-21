@@ -6,7 +6,7 @@ baseline in results/<task>; only the input side differs:
   morfessor        words split into Morfessor morphemes, each fed as its own word (extra word starts)
   morfessor_inner  Morfessor cuts kept inside words: subword pieces stop at morpheme boundaries, no extra word starts
   serengeti_fvt    Serengeti's tokenizer, embeddings moved into AfroXLMR by Fast Vocabulary Transfer (frozen)
-CIs are paired bootstraps over test sentences (same resampled sentences for both settings), pooled over
+CIs bootstrap test sentences (paired: the same resampled sentences for both settings) and seeds, pooled over
 languages and seeds.
 
     python src/variants_report.py
@@ -52,7 +52,7 @@ def compare(task, variant, results=Path("results")):
     for l in langs:
         k = (l, l)
         b, s = np.mean(base_sc[k]) * 100, np.mean(var_sc[k]) * 100
-        dist = boot(task, var_it[k]) - boot(task, base_it[k])
+        dist = boot(task, var_it[k], arm=1) - boot(task, base_it[k])
         diffs.append(dist)
         lo, hi = np.percentile(dist, [2.5, 97.5]) * 100
         rows.append(dict(task=task, variant=variant, lang=l, lora=b, variant_score=s, difference=s - b, ci_lo=lo, ci_hi=hi))
@@ -115,8 +115,8 @@ def main():
     toks = {r["lang"]: r for r in token_stats()}
     summary = ["# Tokenization variants vs plain LoRA (NER and POS)", "",
                "All variants: LoRA r=8 on Davlan/afro-xlmr-large-76L, seeds 1-3, the settings and trainable parameters "
-               "of the LoRA baseline; only the input differs. Differences in points; CIs are paired bootstraps over "
-               "test sentences, pooled over 6 languages and seeds.", ""]
+               "of the LoRA baseline; only the input differs. Differences in points; CIs bootstrap test sentences (paired) "
+               "and seeds, pooled over 6 languages.", ""]
     pooled_rows = []
     per_lang = {}
     for task in ("ner", "pos"):
@@ -133,13 +133,13 @@ def main():
                      "Model Davlan/afro-xlmr-large-76L, LoRA r=8, seeds 1-3, same hyperparameters. "
                      f"Metric: {name} (%). See src/variants_report.py for what the variant changes.", "",
                      "## In-language", "",
-                     md_table(["lang", "LoRA", "variant", "difference", "95% CI (paired)", "tokens/word"],
+                     md_table(["lang", "LoRA", "variant", "difference", "95% CI (sentences + seeds)", "tokens/word"],
                               [[r["lang"], f"{r['lora']:.1f}", f"{r['variant_score']:.1f}", f"{r['difference']:+.1f}",
                                 f"[{r['ci_lo']:+.1f}, {r['ci_hi']:+.1f}]",
                                 f"{float(toks[r['lang']]['afroxlmr']):.2f} -> {float(toks[r['lang']][v]):.2f}"]
                                for r in c["rows"]]), "",
                      f"Pooled over {len(langs)} languages and all seeds: {point:+.1f} points, "
-                     f"95% CI [{lo:+.1f}, {hi:+.1f}] (paired bootstrap over test sentences).", "",
+                     f"95% CI [{lo:+.1f}, {hi:+.1f}] (bootstrap over test sentences, paired, and seeds).", "",
                      "## Zero-shot transfer (off-diagonal)", "",
                      md_table(["cells", "LoRA", "variant", "difference"],
                               [[g, f"{b:.1f}", f"{s:.1f}", f"{x:+.1f}"] for g, b, s, x in c["zero_shot"]]), "",

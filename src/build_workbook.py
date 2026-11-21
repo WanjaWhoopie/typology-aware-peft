@@ -196,7 +196,7 @@ def task_sheet(wb, name, task, folder):
                           "peak GPU GB", "minutes/run", "best epoch (mean)", "test items", "seeds"], rows,
                   [None, "0.0", "0.0", "0.0", "0.0", "0.00", "0.0", "0.0", "0.0", "0", "0"],
                   title=f"Method: {m}. In-language (train and test on the same language)",
-                  note="CI: bootstrap over test items (2,000 resamples), same resampled items for every seed. "
+                  note="CI: bootstrap over test items (2,000 resamples, the same for every seed) and over seeds. "
                        "Bold: best and weakest language.",
                   bold={(i, j) for i, _ in best(rows, [1]) | best(rows, [1], min) for j in (0, 1)})
         M = np.array([[np.mean(sc[m][(s, t)]) * 100 if (s, t) in sc[m] else np.nan for t in langs] for s in langs])
@@ -239,13 +239,13 @@ def task_sheet(wb, name, task, folder):
         rows, diffs = [], []
         for l in langs:
             rows.append([l, (np.mean(sc[b_m][(l, l)]) - np.mean(sc[a_m][(l, l)])) * 100])
-            diffs.append(boot(btask, it[b_m][(l, l)]) - boot(btask, it[a_m][(l, l)]))
+            diffs.append(boot(btask, it[b_m][(l, l)], arm=1) - boot(btask, it[a_m][(l, l)]))
         lo, hi = np.percentile(np.mean(diffs, axis=0), [2.5, 97.5]) * 100
         rows.append(["pooled (6 languages, all seeds)", np.mean([x[1] for x in rows])])
         rows.append(["pooled 95% CI low", lo]); rows.append(["pooled 95% CI high", hi])
         r = table(ws, r, ["lang", "difference (points)"], rows, [None, "+0.0;-0.0;0.0"],
                   title=f"{b_m} minus {a_m}, in-language {metric}",
-                  note="CI: paired bootstrap over test items. Bold: the pooled answer (a CI that spans 0 = no real difference).",
+                  note="CI: bootstrap over test items (paired) and seeds. Bold: the pooled answer (a CI that spans 0 = no real difference).",
                   bold={(len(rows) - k, j) for k in (1, 2, 3) for j in (0, 1)})
     else:
         ws.cell(r, 1, "LoRA runs not finished yet: the LoRA tables and LoRA minus full appear here after the rerun.").font = FONT
@@ -275,7 +275,7 @@ def variants_sheet(wb):
                       "zero-shot difference (30 cells)"], rows,
               [None, None] + ["+0.0;-0.0;0.0"] * 4,
               title="Pooled answer: variant minus plain LoRA (negative = worse)",
-              note="Pooled over 6 languages and 3 seeds; CI: paired bootstrap over test sentences. "
+              note="Pooled over 6 languages and 3 seeds; CI: bootstrap over test sentences (paired) and seeds. "
                    "Bold: the best variant per task.",
               bold={(i, j) for i, _ in best(rows[:3], [2]) | {(k + 3, 2) for k, _ in best(rows[3:], [2])}
                     for j in (1, 2)})

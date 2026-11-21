@@ -1,7 +1,7 @@
 task,variant,lang,lora,variant_score,difference,ci_lo,ci_hi
-pos,serengeti_fvt,amh,91.912,89.682,-2.23,-3.172,-1.401
-pos,serengeti_fvt,hau,91.987,91.048,-0.939,-1.222,-0.67
-pos,serengeti_fvt,kin,98.072,95.328,-2.744,-2.991,-2.506
-pos,serengeti_fvt,lug,91.725,87.488,-4.237,-4.727,-3.762
-pos,serengeti_fvt,swa,92.501,91.651,-0.85,-1.085,-0.631
-pos,serengeti_fvt,zul,89.147,86.448,-2.699,-3.143,-2.254
+pos,serengeti_fvt,amh,91.912,89.682,-2.23,-3.485,-1.016
+pos,serengeti_fvt,hau,91.987,91.048,-0.939,-1.396,-0.499
+pos,serengeti_fvt,kin,98.072,95.328,-2.744,-3.264,-2.187
+pos,serengeti_fvt,lug,91.725,87.488,-4.237,-4.859,-3.615
+pos,serengeti_fvt,swa,92.501,91.651,-0.85,-1.124,-0.582
+pos,serengeti_fvt,zul,89.147,86.448,-2.699,-3.262,-2.194

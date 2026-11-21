@@ -1,7 +1,7 @@
 task,variant,lang,lora,variant_score,difference,ci_lo,ci_hi
-pos,morfessor,amh,91.912,88.65,-3.262,-4.163,-2.437
-pos,morfessor,hau,91.987,86.082,-5.905,-6.401,-5.425
-pos,morfessor,kin,98.072,96.111,-1.961,-2.208,-1.721
-pos,morfessor,lug,91.725,88.113,-3.612,-4.018,-3.209
-pos,morfessor,swa,92.501,89.362,-3.14,-3.479,-2.818
-pos,morfessor,zul,89.147,86.581,-2.565,-2.997,-2.132
+pos,morfessor,amh,91.912,88.65,-3.262,-4.276,-2.268
+pos,morfessor,hau,91.987,86.082,-5.905,-6.454,-5.373
+pos,morfessor,kin,98.072,96.111,-1.961,-2.293,-1.626
+pos,morfessor,lug,91.725,88.113,-3.612,-4.077,-3.137
+pos,morfessor,swa,92.501,89.362,-3.14,-3.595,-2.673
+pos,morfessor,zul,89.147,86.581,-2.565,-3.114,-2.035
