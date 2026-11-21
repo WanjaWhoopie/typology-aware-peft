@@ -52,15 +52,36 @@ def amp_dtype(device):
     return torch.bfloat16 if torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16
 
 
-def mean_loss(model, data, collate, device, bs=32, n=20):
+def batch_loss(model, batch, device, micro, scaler=None):
+    """Masked-LM loss of one batch, run in micro-batches so it fits on a 16 GB GPU (T4).
+
+    Each micro-batch's mean loss is weighted by its share of the batch's masked tokens, so the loss and the
+    gradient equal those of the whole batch at once: the training is the same whatever `micro` is.
+    With a scaler, gradients are accumulated (training); without, nothing is backpropagated (evaluation).
+    """
+    n_masked = (batch["labels"] != -100).sum().item()
+    total = 0.0
+    for j in range(0, batch["input_ids"].shape[0], micro):
+        part = {k: v[j:j + micro].to(device) for k, v in batch.items()}
+        share = (part["labels"] != -100).sum().item() / max(n_masked, 1)
+        if share == 0:
+            continue
+        with torch.autocast(device_type=device.type, dtype=amp_dtype(device) or torch.float32,
+                            enabled=amp_dtype(device) is not None):
+            loss = model(**part).loss * share
+        if scaler is not None:
+            scaler.scale(loss).backward()
+        total += loss.item()
+    return total
+
+
+def mean_loss(model, data, collate, device, bs=32, n=20, micro=8):
     model.eval()
-    g = torch.Generator().manual_seed(0)
     tot = 0.0
-    with torch.no_grad(), torch.autocast(device_type=device.type, dtype=amp_dtype(device) or torch.float32, enabled=amp_dtype(device) is not None):
+    with torch.no_grad():
         for i in range(n):
             torch.manual_seed(i)  # same masks every time
-            batch = collate(data[i * bs:(i + 1) * bs])
-            tot += model(**{k: v.to(device) for k, v in batch.items()}).loss.item()
+            tot += batch_loss(model, collate(data[i * bs:(i + 1) * bs]), device, micro)
     model.train()
     return tot / n
 
@@ -73,6 +94,8 @@ def main():
     ap.add_argument("--blocks_per_lang", type=int, default=20_000)
     ap.add_argument("--steps", type=int, default=3000)
     ap.add_argument("--bs", type=int, default=32)
+    ap.add_argument("--micro_bs", type=int, default=8,
+                    help="blocks per forward pass; gradients are accumulated up to --bs, so results do not depend on it")
     ap.add_argument("--lr", type=float, default=5e-4)
     ap.add_argument("--raw", default="data/raw")
     args = ap.parse_args()
@@ -95,7 +118,7 @@ def main():
     collate = DataCollatorForLanguageModeling(tok, mlm_probability=0.15)
     collate_ids = lambda xs: collate([{"input_ids": x} for x in xs])
 
-    before = {l: mean_loss(model, held[l], collate_ids, device) for l in args.langs}
+    before = {l: mean_loss(model, held[l], collate_ids, device, micro=args.micro_bs) for l in args.langs}
     opt = torch.optim.AdamW([emb], lr=args.lr, weight_decay=0.0)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / 200) * max(0.0, 1 - s / args.steps))
     scaler = torch.amp.GradScaler(device.type, enabled=amp_dtype(device) == torch.float16)
@@ -107,9 +130,7 @@ def main():
             i = 0
         batch = collate_ids(train[i:i + args.bs])
         i += args.bs
-        with torch.autocast(device_type=device.type, dtype=amp_dtype(device) or torch.float32, enabled=amp_dtype(device) is not None):
-            loss = model(**{k: v.to(device) for k, v in batch.items()}).loss
-        scaler.scale(loss).backward()
+        loss = batch_loss(model, batch, device, args.micro_bs, scaler)
         scaler.unscale_(opt)
         torch.nn.utils.clip_grad_norm_([emb], 1.0)
         scaler.step(opt)
@@ -117,8 +138,8 @@ def main():
         sched.step()
         opt.zero_grad(set_to_none=True)
         if step % 250 == 0 or step == args.steps - 1:
-            print(f"step {step:5d}  loss {loss.item():.3f}  {time.time() - t0:.0f}s", flush=True)
-    after = {l: mean_loss(model, held[l], collate_ids, device) for l in args.langs}
+            print(f"step {step:5d}  loss {loss:.3f}  {time.time() - t0:.0f}s", flush=True)
+    after = {l: mean_loss(model, held[l], collate_ids, device, micro=args.micro_bs) for l in args.langs}
 
     out = Path(args.out)
     model.save_pretrained(out)
@@ -126,7 +147,7 @@ def main():
     cfg = json.loads((out / "config.json").read_text(encoding="utf-8"))
     cfg.pop("transformers_version", None)  # see src/vocab_transfer.py (transformers 4.57.2 local-load bug)
     (out / "config.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-    stats = dict(model=args.model, steps=args.steps, bs=args.bs, lr=args.lr, blocks_per_lang=args.blocks_per_lang,
+    stats = dict(model=args.model, steps=args.steps, bs=args.bs, micro_bs=args.micro_bs, lr=args.lr, blocks_per_lang=args.blocks_per_lang,
                  trained="input embeddings only (tied output layer)", seconds=time.time() - t0,
                  gpu=torch.cuda.get_device_name(0) if device.type == "cuda" else None, amp=str(amp_dtype(device)),
                  heldout_loss_before=before, heldout_loss_after=after)
