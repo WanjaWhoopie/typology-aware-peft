@@ -1,0 +1,33 @@
+{
+  "args": {
+    "task": "pos",
+    "model": "Davlan/afro-xlmr-large-76L",
+    "methods": [
+      "lora"
+    ],
+    "langs": [
+      "swa"
+    ],
+    "seeds": [
+      1
+    ],
+    "epochs": 20,
+    "bs": 16,
+    "max_len": 256,
+    "lr_full": 2e-05,
+    "lr_lora": 0.0003,
+    "lora_r": 8,
+    "lora_targets": "all",
+    "patience": 3,
+    "no_test": true,
+    "raw": "data/raw",
+    "out": "/content/results/sweep/pos/r8_all",
+    "segment": null,
+    "seg_mode": "word",
+    "smoke": false,
+    "metric": "acc",
+    "collapse": 0.5
+  },
+  "torch": "2.14.1+cu130",
+  "gpu": "NVIDIA L4"
+}

@@ -1,0 +1,16 @@
+{
+  "ner": {
+    "lora_r": 32,
+    "lora_targets": "qv",
+    "dev": 0.9448394214268203,
+    "best_epoch": 14,
+    "epochs_run": 17
+  },
+  "pos": {
+    "lora_r": 8,
+    "lora_targets": "qv",
+    "dev": 0.9389572963059994,
+    "best_epoch": 14,
+    "epochs_run": 17
+  }
+}
