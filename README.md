@@ -103,6 +103,9 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
 │   ├── morfessor_segment.py       # Morfessor morpheme splits for the NER and POS words (pre-segmentation)
 │   ├── variants_report.py         # tokenization variants vs plain LoRA, NER and POS
 │   ├── sweep_report.py            # LoRA sweep on Swahili dev: picks one LoRA setting per task
+│   ├── mlm_adapt.py               # short masked-LM pass training only the input embeddings
+│   ├── capsplit_segment.py        # isiZulu prefix + capital words (uKaunda) split at the capital
+│   ├── scramble_segment.py        # scrambled-cut control: Morfessor's cut counts at random positions
 │   ├── vocab_transfer.py          # option B: Serengeti's vocabulary moved into AfroXLMR (FVT)
 │   └── build_workbook.py          # builds results/results.xlsx from everything below
 ├── notebooks/
@@ -110,7 +113,9 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
 │   ├── token_colab.ipynb          # runs the NER and POS baselines on Colab
 │   ├── morfessor_colab.ipynb      # NER and POS with Morfessor pre-segmentation (LoRA) on Colab
 │   ├── variants_colab.ipynb       # follow-ups: Morfessor cuts inside words, Serengeti vocabulary (LoRA)
-│   └── sweep_colab.ipynb          # LoRA sweep (rank, target layers) on Swahili dev; no Drive needed
+│   ├── sweep_colab.ipynb          # LoRA sweep (rank, target layers) on Swahili dev; no Drive needed
+│   ├── baselines_colab.ipynb      # converged baselines, isiZulu capital split, low-data runs (kin, lug, swa, zul)
+│   └── vocab_mlm_colab.ipynb      # Serengeti vocabulary + masked-LM step, with an AfroXLMR + masked-LM control
 └── results/
     ├── results.xlsx               # every number in the project, one tab per experiment
     ├── data_access_report.md      # which datasets and models load
@@ -123,7 +128,9 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
     ├── <task>_serengeti_fvt/      # NER / POS LoRA, Serengeti's vocabulary moved into AfroXLMR
     ├── variants_summary.md        # all tokenization variants against plain LoRA, with interpretation
     ├── tokenizers/                # fragmentation, morpheme boundaries, Morfessor
-    └── morfessor_seg/             # Morfessor word splits per language, used by the pre-segmentation runs
+    ├── morfessor_seg/             # Morfessor word splits per language, used by the pre-segmentation runs
+    ├── morfessor_scrambled_seg/   # the same number of cuts at random positions (control)
+    └── capsplit_seg/              # isiZulu prefix + capital splits
 ```
 
 ## Tracking papers

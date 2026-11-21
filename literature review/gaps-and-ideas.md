@@ -14,9 +14,17 @@ When you finish a paper's notes, copy any strong gaps or ideas here and link bac
 | Tokenizers never tested inside a transformer (only bag-of-tokens classifiers) | [Ndomba 2025](notes/2025-ndomba-tokenizers-african-languages.md), [Ndomba 2024](notes/2024-ndomba-swahili-tokenizer.md) | Evaluate tokenization changes inside the model (WP1) | High |
 | Single runs, copied baselines, no significance tests | [Parvess 2023](notes/2023-parvess-bantuberta.md), [Ndomba 2024](notes/2024-ndomba-swahili-tokenizer.md) | 3+ seeds, same fine-tuning setup for all baselines, significance tests | Medium |
 
-## Prior work flagged by external reviews (21 Nov 2026, not yet read)
+## Prior work flagged by external reviews (21 Nov 2026), checked by reading
 
-Two external reviews of the repo (not the professor) listed published work that changes what is still open. All rows are in the [reading log](reading-log.md) (rows 6 to 41); claims below are the reviews' until we read the papers.
+Two external reviews of the repo (not the professor) listed published work that changes what is still open. All rows are in the [reading log](reading-log.md) (rows 6 to 41), each read in full by a research agent on 2026-11-21 with a note in `notes/`.
+
+**What reading changed (21 Nov):**
+- **RQ2 is largely taken as framed.** Idris et al. 2026 already test whether embedding similarity predicts transfer for our six languages, with AfroXLMR-large, on MasakhaNER 2.0 and MasakhaPOS (one seed, no LoRA, no overlap covariate). Still open: whether text-derived morphology predicts transfer once entity/token overlap and the target are controlled, and whether LoRA changes which features matter. Four Bantu languages cannot support a correlational claim.
+- **Every positive morphology result lets something adapt after the change** (MLM on embeddings or the body: FVT, FOCUS, LGSE, UNKs, Kumar & Dušek) or pretrains from scratch (KinyaBERT, Meyer & Buys, Hou). Our frozen-embedding drops are what the literature predicts. FOCUS also finds the original vocabulary + the same adaptation almost as good, so that control is essential.
+- **Several review claims were overstated:** SEC's 1% is relative to the embedding matrix; UNKs Everywhere trains its adapters; MAD-G's African NER gains are mostly on languages its generator saw; Fekete et al. is adapter averaging for Creole MT, not typology; Lauscher's few-shot gains are large for POS, moderate for NER; Meyer & Buys 2022 gains are intrinsic (BPC) only.
+- **A clean null is publishable:** three studies find morphological alignment predicts little (all decoder LLMs); our encoder + PEFT + NER/POS setting is untested.
+- **Risk for RQ3:** TIPA reports that LoRA "did not see strong results" in preliminary tests; pooled multi-source fine-tuning nearly matched ZGUL on African NER, so it is a mandatory baseline.
+
 
 | Research question | What is already published | What still looks open | Consequence for us |
 |---|---|---|---|

@@ -113,6 +113,12 @@ def load_pos(lang, raw):
             "test": pick(order[n_tr + n_dev:])}
 
 
+def cuts_for(seg, word):
+    """Cut offsets for a word: an exact-case entry first (e.g. capital-split tables keyed 'uKaunda'), else the
+    lowercased word (Morfessor tables are all lowercase)."""
+    return seg.get(word, seg.get(word.lower(), []))
+
+
 def split_word(word, cuts):
     """'aseduzane', [1, 3, 6, 8] -> ['a', 'se', 'duz', 'an', 'e']; cuts come from the lowercased word."""
     c = [0] + [x for x in cuts if 0 < x < len(word)] + [len(word)]
@@ -150,7 +156,7 @@ def encode_inner(sents, tok, l2i, max_len, seg):
     for words, tags in sents:
         ids, labels = [tok.cls_token_id], [-100]
         for i, w in enumerate(words):
-            parts = split_word(w, seg.get(w.lower(), []))
+            parts = split_word(w, cuts_for(seg, w))
             toks = tok.tokenize(parts[0]) + [t for p in parts[1:] for t in inner_tokens(tok, p, vocab)]
             toks = toks or [tok.unk_token]
             if len(ids) + len(toks) > max_len - 1:
@@ -176,7 +182,7 @@ def encode(sents, tok, l2i, max_len, seg=None, seg_mode="word"):
         if seg:
             pieces, owner = [], []
             for i, w in enumerate(words):
-                for p in split_word(w, seg.get(w.lower(), [])):
+                for p in split_word(w, cuts_for(seg, w)):
                     pieces.append(p)
                     owner.append(i)
         else:
@@ -192,11 +198,12 @@ def encode(sents, tok, l2i, max_len, seg=None, seg_mode="word"):
     return out
 
 
-def load_all(task, langs, tok, max_len, raw, limit=None, segment=None, seg_mode="word"):
+def load_all(task, langs, tok, max_len, raw, limit=None, segment=None, seg_mode="word", train_size=None):
     loader = load_ner if task == "ner" else load_pos
     raw_data = {l: loader(l, raw) for l in langs}
-    seg = {l: json.loads((Path(segment) / f"{l}.json").read_text(encoding="utf-8")) if segment else None
-           for l in langs}
+    seg = {l: (json.loads((Path(segment) / f"{l}.json").read_text(encoding="utf-8"))
+               if (Path(segment) / f"{l}.json").exists() else {}) if segment else None
+           for l in langs}  # a language without a table is left unsplit
     labels = sorted({t for l in langs for _, tags in raw_data[l]["train"] for t in tags})
     l2i = {c: i for i, c in enumerate(labels)}
     data = {}
@@ -206,6 +213,8 @@ def load_all(task, langs, tok, max_len, raw, limit=None, segment=None, seg_mode=
             sents = raw_data[l][split]
             if limit:
                 sents = [sents[i] for i in np.random.default_rng(0).permutation(len(sents))[:limit]]
+            elif train_size and split == "train":  # few-shot: the same subset for every seed and method
+                sents = [sents[i] for i in sorted(np.random.default_rng(0).permutation(len(sents))[:train_size])]
             # a tag seen only in another split or language would have no id: map it to "O" / "X"
             fallback = "O" if task == "ner" else "X"
             sents = [(w, [t if t in l2i else fallback for t in tags]) for w, tags in sents]
@@ -331,7 +340,7 @@ def train_one(src, seed, method, data, labels, tok, args, device, amp_dtype):
            "n_params": n_all, "n_trainable": n_train, "trainable_pct": 100 * n_train / n_all,
            "peak_mem_gb": peak, "seconds": seconds, "best_epoch": best_epoch, "best_dev": best,
            "collapsed": best < args.collapse, "lr": lr, "epochs": args.epochs, "bs": args.bs,
-           "epochs_run": epochs_run, "patience": args.patience,
+           "epochs_run": epochs_run, "patience": args.patience, "train_sentences": len(data[src]["train"]),
            **({"lora_r": args.lora_r, "lora_targets": args.lora_targets} if method == "lora" else {})}
     if run["collapsed"]:
         print(f"    WARNING: dev {args.metric} below {args.collapse} (model likely collapsed). "
@@ -372,6 +381,9 @@ def main():
                     help="word: each morpheme becomes its own word (extra word-start markers); inner: the word stays "
                          "one word and only its subword cuts are forced onto morpheme boundaries. "
                          "Default output for inner: results/<task>_morfessor_inner")
+    ap.add_argument("--train_size", type=int, default=None,
+                    help="few-shot: train on this many sentences (fixed random subset, same for every seed and "
+                         "method); dev and test unchanged")
     ap.add_argument("--smoke", action="store_true", help="tiny run to test the pipeline")
     args = ap.parse_args()
     args.metric = "f1" if args.task == "ner" else "acc"
@@ -408,7 +420,7 @@ def main():
 
     tok = AutoTokenizer.from_pretrained(args.model)
     data, labels = load_all(args.task, args.langs, tok, args.max_len, Path(args.raw), limit, args.segment,
-                            args.seg_mode)
+                            args.seg_mode, args.train_size)
     print(f"{len(labels)} labels: {labels}")
     print({l: {s: len(v) for s, v in d.items()} for l, d in data.items()})
 
