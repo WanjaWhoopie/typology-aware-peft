@@ -64,15 +64,16 @@ Details: [`results/tokenizers/summary.md`](results/tokenizers/summary.md), workb
 | 3. Do token boundaries fall on morpheme boundaries? (isiZulu only, the one language with gold segmentations: NCHLT, 11,392 words) | RQ1 is about preserving morphemes, not only about fewer tokens.                        | Barely above chance. Boundary F1 is 0.32 to 0.41 across tokenizers (AfroXLMR-76L 0.38), against a chance precision of 0.30; only 3 to 5% of words are split exactly into their morphemes                                                   |
 | 4. Can an unsupervised segmenter (Morfessor) stand in for gold in Swahili, Kinyarwanda and Luganda?                               | No gold segmentations exist for those three languages.                                 | No: trained on 3.3M words of isiZulu web text, its best setting reaches boundary F1 0.45 on held-out gold words (0.48 on all gold words), only a little above the tokenizers. Boundary preservation is therefore reported for isiZulu only |
 
-### 6. Splitting words into morphemes before the tokenizer (WP1 method b, done)
+### 6. Changing how words reach the model: Morfessor cuts and Serengeti's vocabulary (WP1 methods b and c, done)
 
-Details: [`results/ner_morfessor/comparison.md`](results/ner_morfessor/comparison.md) and [`results/pos_morfessor/comparison.md`](results/pos_morfessor/comparison.md), workbook tab "Morfessor downstream". Same model, LoRA settings and seeds as the LoRA baselines; only the input differs. Morfessor (corpus weight 0.1, trained per language) splits each word, each morpheme is fed to the unchanged AfroXLMR tokenizer as its own word, and the label stays on the first piece.
+Details: [`results/variants_summary.md`](results/variants_summary.md) and [`results/variants_interpretation.md`](results/variants_interpretation.md), workbook tab "Tokenization variants". All three variants use the model, LoRA settings, seeds and trainable parameters of the LoRA baseline; only the input differs. Differences are against plain LoRA, pooled over 6 languages and 3 seeds (paired bootstrap CIs).
 
 | question | why it matters | what we found |
 | --- | --- | --- |
-| 1. Does feeding morphemes instead of whole words help NER? | Cheapest form of morphology-aware input: no new vocabulary, no new model. | No: −7.0 points pooled, 95% CI [−7.5, −6.4], lower in every language. Smallest loss for zul (−2.8), lug (−4.5) and kin (−4.9); largest for hau (−14.3) and amh (−11.3). Zero-shot transfer drops more (−12.4) |
-| 2. Does it help POS? | Same question on a task that depends more on word form. | No: −3.4 points pooled, 95% CI [−3.6, −3.2], lower in every language (−2.0 kin to −5.9 hau). Zero-shot drops −9.8, most from Amharic and Hausa sources (−16.2) |
-| 3. Why does it hurt? | Decides what to try next. | Not truncation: no test word is cut off in either setting. Most likely each morpheme now looks like a separate word, a form the pretrained model never saw, and LoRA cannot relearn that. Damage is smallest in the agglutinative Bantu languages, where Morfessor's cuts are most often real, and largest in Hausa (little agglutination) and Amharic (its script writes consonant and vowel as one character, so boundaries fall inside characters). Running next (`notebooks/variants_colab.ipynb`): keep the boundaries but drop the extra word-start marker, and option B, Serengeti's vocabulary moved into AfroXLMR |
+| 1. Does feeding Morfessor morphemes as separate words help? | Cheapest morphology-aware input: no new vocabulary, no new model. | No: NER −7.0 [−7.5, −6.4], POS −3.4 [−3.6, −3.2], lower in every language; zero-shot −12.4 and −9.8. Not truncation: no test word is cut off |
+| 2. Does it help if the word stays one word and only its subword pieces stop at Morfessor's cuts? | Separates the effect of the morpheme cuts from the extra word starts. | Much less harmful, still not better: NER −3.9 [−4.4, −3.4], POS −0.5 [−0.6, −0.3] (Amharic POS +0.1). Token counts are almost the same as in question 1, so the extra word starts caused most of that loss. Bantu languages lose only 1.0 to 1.8 NER points, against 7.4 for Hausa and 9.2 for Amharic |
+| 3. Option B: does Serengeti's vocabulary, moved into AfroXLMR, help? | Serengeti splits least for all six languages (Tokenizer stats tab). | No: NER −5.8 [−6.5, −5.2], POS −2.3 [−2.5, −2.1], although words get about a third shorter. New tokens carry averaged vectors that LoRA cannot change. The NER loss follows the share of entity tokens that are new, in perfect rank order (amh 44% → −18.5 down to swa 24% → −0.9). Next for option B: briefly train the new embeddings before LoRA |
+| 4. What does this mean for the thesis? | Decides where the morphology should go. | Changing only the input while the representations stay fixed costs accuracy, least when the input stays close to pretraining. Morphology has to be handled on the model side too, which supports the typology-aware adapter |
 
 ## Repository structure
 
@@ -100,7 +101,7 @@ Details: [`results/ner_morfessor/comparison.md`](results/ner_morfessor/compariso
 │   ├── tokenizer_stats.py         # fragmentation and morpheme-boundary scores per tokenizer
 │   ├── morfessor_silver.py        # Morfessor segmenter scored against isiZulu gold
 │   ├── morfessor_segment.py       # Morfessor morpheme splits for the NER and POS words (pre-segmentation)
-│   ├── morfessor_report.py        # pre-segmentation vs plain LoRA, NER and POS
+│   ├── variants_report.py         # tokenization variants vs plain LoRA, NER and POS
 │   ├── vocab_transfer.py          # option B: Serengeti's vocabulary moved into AfroXLMR (FVT)
 │   └── build_workbook.py          # builds results/results.xlsx from everything below
 ├── notebooks/
@@ -115,8 +116,10 @@ Details: [`results/ner_morfessor/comparison.md`](results/ner_morfessor/compariso
     ├── ner/                       # NER runs and tables
     ├── pos/                       # POS runs and tables
     ├── pppl/                      # pseudo-perplexity per language
-    ├── ner_morfessor/             # NER LoRA runs with Morfessor pre-segmentation, comparison
-    ├── pos_morfessor/             # POS LoRA runs with Morfessor pre-segmentation, comparison
+    ├── <task>_morfessor/          # NER / POS LoRA, Morfessor morphemes as separate words
+    ├── <task>_morfessor_inner/    # NER / POS LoRA, Morfessor cuts inside words
+    ├── <task>_serengeti_fvt/      # NER / POS LoRA, Serengeti's vocabulary moved into AfroXLMR
+    ├── variants_summary.md        # all tokenization variants against plain LoRA, with interpretation
     ├── tokenizers/                # fragmentation, morpheme boundaries, Morfessor
     └── morfessor_seg/             # Morfessor word splits per language, used by the pre-segmentation runs
 ```

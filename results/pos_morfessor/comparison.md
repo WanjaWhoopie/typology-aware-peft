@@ -1,10 +1,10 @@
-# POS: Morfessor pre-segmentation vs plain LoRA
+# POS: Morfessor, morphemes as separate words vs plain LoRA
 
-Model Davlan/afro-xlmr-large-76L, LoRA r=8, seeds 1-3, same hyperparameters. Metric: accuracy (%). Only the input differs: words split into Morfessor morphemes (corpus weight 0.1, seen words only), vocabulary unchanged.
+Model Davlan/afro-xlmr-large-76L, LoRA r=8, seeds 1-3, same hyperparameters. Metric: accuracy (%). See src/variants_report.py for what the variant changes.
 
 ## In-language
 
-| lang | LoRA | LoRA + Morfessor | difference | 95% CI (paired) | AfroXLMR tokens/word |
+| lang | LoRA | variant | difference | 95% CI (paired) | tokens/word |
 |---|---|---|---|---|---|
 | amh | 91.9 | 88.7 | -3.3 | [-4.2, -2.4] | 2.10 -> 2.77 |
 | hau | 92.0 | 86.1 | -5.9 | [-6.4, -5.4] | 1.55 -> 2.24 |
@@ -17,13 +17,13 @@ Pooled over 6 languages and all seeds: -3.4 points, 95% CI [-3.6, -3.2] (paired 
 
 ## Zero-shot transfer (off-diagonal)
 
-| cells | LoRA | LoRA + Morfessor | difference |
+| cells | LoRA | variant | difference |
 |---|---|---|---|
 | all 30 cells | 55.0 | 45.2 | -9.8 |
 | Bantu -> Bantu | 65.2 | 59.9 | -5.3 |
 | amh/hau -> Bantu | 47.2 | 31.0 | -16.2 |
 
-### Difference per cell (LoRA + Morfessor minus LoRA; rows = source, columns = target)
+### Difference per cell (variant minus LoRA; rows = source, columns = target)
 
 | source \ target | amh | hau | kin | lug | swa | zul |
 |---|---|---|---|---|---|---|

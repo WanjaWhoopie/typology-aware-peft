@@ -1,7 +1,7 @@
-task,lang,lora,lora_morfessor,difference,ci_lo,ci_hi,tokens_per_word_before,tokens_per_word_after
-ner,amh,73.611,62.325,-11.287,-13.888,-8.774,2.098,2.767
-ner,hau,83.051,68.774,-14.277,-15.492,-13.062,1.553,2.242
-ner,kin,84.631,79.682,-4.949,-5.792,-4.131,2.344,2.793
-ner,lug,84.101,79.624,-4.477,-5.605,-3.3,2.438,2.853
-ner,swa,91.445,87.54,-3.906,-4.551,-3.226,1.508,2.282
-ner,zul,86.466,83.629,-2.837,-3.835,-1.815,2.433,2.836
+task,variant,lang,lora,variant_score,difference,ci_lo,ci_hi
+ner,morfessor,amh,73.611,62.325,-11.287,-13.888,-8.774
+ner,morfessor,hau,83.051,68.774,-14.277,-15.492,-13.062
+ner,morfessor,kin,84.631,79.682,-4.949,-5.792,-4.131
+ner,morfessor,lug,84.101,79.624,-4.477,-5.605,-3.3
+ner,morfessor,swa,91.445,87.54,-3.906,-4.551,-3.226
+ner,morfessor,zul,86.466,83.629,-2.837,-3.835,-1.815

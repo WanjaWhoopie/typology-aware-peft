@@ -1,0 +1,7 @@
+task,variant,lang,lora,variant_score,difference,ci_lo,ci_hi
+ner,morfessor_inner,amh,73.611,64.372,-9.239,-11.6,-6.97
+ner,morfessor_inner,hau,83.051,75.655,-7.396,-8.32,-6.485
+ner,morfessor_inner,kin,84.631,82.873,-1.758,-2.398,-1.089
+ner,morfessor_inner,lug,84.101,82.38,-1.721,-2.694,-0.784
+ner,morfessor_inner,swa,91.445,89.384,-2.062,-2.579,-1.492
+ner,morfessor_inner,zul,86.466,85.515,-0.951,-1.727,-0.224
