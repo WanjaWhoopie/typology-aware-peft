@@ -89,10 +89,12 @@ Details: [`results/tokenizers/summary.md`](results/tokenizers/summary.md), workb
 │   ├── pseudo_perplexity.py       # how well the model knows each language (Luganda diagnostic)
 │   ├── tokenizer_stats.py         # fragmentation and morpheme-boundary scores per tokenizer
 │   ├── morfessor_silver.py        # Morfessor segmenter scored against isiZulu gold
+│   ├── morfessor_segment.py       # Morfessor morpheme splits for the NER and POS words (pre-segmentation)
 │   └── build_workbook.py          # builds results/results.xlsx from everything below
 ├── notebooks/
 │   ├── sib200_colab.ipynb         # runs the SIB-200 baseline on Colab
-│   └── token_colab.ipynb          # runs the NER and POS baselines on Colab
+│   ├── token_colab.ipynb          # runs the NER and POS baselines on Colab
+│   └── morfessor_colab.ipynb      # NER and POS with Morfessor pre-segmentation (LoRA) on Colab
 └── results/
     ├── results.xlsx               # every number in the project, one tab per experiment
     ├── data_access_report.md      # which datasets and models load
@@ -100,7 +102,8 @@ Details: [`results/tokenizers/summary.md`](results/tokenizers/summary.md), workb
     ├── ner/                       # NER runs and tables
     ├── pos/                       # POS runs and tables
     ├── pppl/                      # pseudo-perplexity per language
-    └── tokenizers/                # fragmentation, morpheme boundaries, Morfessor
+    ├── tokenizers/                # fragmentation, morpheme boundaries, Morfessor
+    └── morfessor_seg/             # Morfessor word splits per language, used by the pre-segmentation runs
 ```
 
 ## Tracking papers

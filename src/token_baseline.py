@@ -18,6 +18,7 @@ Data (downloaded once into data/raw/, which is not committed):
     python src/token_baseline.py --task ner
     python src/token_baseline.py --task pos
     python src/token_report.py --task ner
+    python src/token_baseline.py --task ner --methods lora --segment results/morfessor_seg   # Morfessor pre-split
 
 Runs are appended to results/<task>/runs.jsonl and results/<task>/results.jsonl, so an interrupted
 run resumes where it stopped (finished combinations are skipped).
@@ -107,13 +108,31 @@ def load_pos(lang, raw):
             "test": pick(order[n_tr + n_dev:])}
 
 
-def encode(sents, tok, l2i, max_len):
-    """Label the first subword of each word; other subwords get -100 (ignored)."""
+def split_word(word, cuts):
+    """'aseduzane', [1, 3, 6, 8] -> ['a', 'se', 'duz', 'an', 'e']; cuts come from the lowercased word."""
+    c = [0] + [x for x in cuts if 0 < x < len(word)] + [len(word)]
+    return [word[a:b] for a, b in zip(c, c[1:])]
+
+
+def encode(sents, tok, l2i, max_len, seg=None):
+    """Label the first subword of each word; other subwords get -100 (ignored).
+    seg (optional): lowercased word -> morpheme cut offsets. Each morpheme is then fed to the tokenizer as its own
+    'word' (as if separated by spaces), but labels stay on whole words: only the first subword of the first
+    morpheme carries the word's label, so scores are comparable with the unsegmented baseline."""
     out = []
     for words, tags in sents:
-        enc = tok(words, is_split_into_words=True, truncation=True, max_length=max_len)
+        if seg:
+            pieces, owner = [], []
+            for i, w in enumerate(words):
+                for p in split_word(w, seg.get(w.lower(), [])):
+                    pieces.append(p)
+                    owner.append(i)
+        else:
+            pieces, owner = words, list(range(len(words)))
+        enc = tok(pieces, is_split_into_words=True, truncation=True, max_length=max_len)
         labels, prev = [], None
-        for w in enc.word_ids():
+        for m in enc.word_ids():
+            w = None if m is None else owner[m]
             labels.append(-100 if w is None or w == prev else l2i[tags[w]])
             prev = w
         out.append({"input_ids": enc["input_ids"], "attention_mask": enc["attention_mask"],
@@ -121,9 +140,11 @@ def encode(sents, tok, l2i, max_len):
     return out
 
 
-def load_all(task, langs, tok, max_len, raw, limit=None):
+def load_all(task, langs, tok, max_len, raw, limit=None, segment=None):
     loader = load_ner if task == "ner" else load_pos
     raw_data = {l: loader(l, raw) for l in langs}
+    seg = {l: json.loads((Path(segment) / f"{l}.json").read_text(encoding="utf-8")) if segment else None
+           for l in langs}
     labels = sorted({t for l in langs for _, tags in raw_data[l]["train"] for t in tags})
     l2i = {c: i for i, c in enumerate(labels)}
     data = {}
@@ -136,7 +157,7 @@ def load_all(task, langs, tok, max_len, raw, limit=None):
             # a tag seen only in another split or language would have no id: map it to "O" / "X"
             fallback = "O" if task == "ner" else "X"
             sents = [(w, [t if t in l2i else fallback for t in tags]) for w, tags in sents]
-            data[l][split] = encode(sents, tok, l2i, max_len)
+            data[l][split] = encode(sents, tok, l2i, max_len, seg[l])
     return data, labels
 
 
@@ -278,17 +299,20 @@ def main():
     ap.add_argument("--lora_r", type=int, default=8)
     ap.add_argument("--raw", default="data/raw")
     ap.add_argument("--out", default=None, help="default: results/<task>")
+    ap.add_argument("--segment", default=None,
+                    help="folder with <lang>.json (word -> morpheme cuts, from src/morfessor_segment.py): pre-split "
+                         "every word into morphemes before tokenizing. Default output then results/<task>_morfessor")
     ap.add_argument("--smoke", action="store_true", help="tiny run to test the pipeline")
     args = ap.parse_args()
     args.metric = "f1" if args.task == "ner" else "acc"
     args.collapse = 0.2 if args.task == "ner" else 0.5
     args.epochs = args.epochs or (5 if args.task == "ner" else 10)
-    args.out = args.out or f"results/{args.task}"
+    args.out = args.out or (f"results/{args.task}_morfessor" if args.segment else f"results/{args.task}")
 
     limit = None
     if args.smoke:
         args.langs, args.seeds, args.epochs, args.methods = ["swa", "amh"], [1], 1, ["lora"]
-        args.out = f"results/{args.task}_smoke"
+        args.out = f"results/{args.task}{'_morfessor' if args.segment else ''}_smoke"
         limit = 64
 
     out = Path(args.out)
@@ -311,7 +335,7 @@ def main():
         "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None}, indent=2), encoding="utf-8")
 
     tok = AutoTokenizer.from_pretrained(args.model)
-    data, labels = load_all(args.task, args.langs, tok, args.max_len, Path(args.raw), limit)
+    data, labels = load_all(args.task, args.langs, tok, args.max_len, Path(args.raw), limit, args.segment)
     print(f"{len(labels)} labels: {labels}")
     print({l: {s: len(v) for s, v in d.items()} for l, d in data.items()})
 

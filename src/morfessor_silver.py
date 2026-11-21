@@ -5,7 +5,8 @@ Morfessor is unsupervised (it never sees a morpheme), so its segmentations are "
 Swahili, Kinyarwanda and Luganda (no gold segmentations exist), we measure how well it does where gold exists:
 isiZulu (NCHLT, as prepared by Moeng et al., 2021; loaded by src/tokenizer_stats.py).
 
-Raw text: WURA passages (castorini/wura, eval split) for zul, swa, kin. Training uses the most frequent
+Raw text: WURA passages (castorini/wura, eval split) for amh, hau, kin, swa, zul and MADLAD-400 for lug, capped at
+30M characters per language (about the size of WURA isiZulu). Training uses the most frequent
 word types with log-dampened counts. The corpus weight (Morfessor's one hyperparameter: higher = fewer cuts)
 is picked on the isiZulu gold dev words and scored on the gold test words, so the test score is held out.
 
@@ -16,6 +17,8 @@ Writes results/tokenizers/morfessor.csv and models to data/processed/morfessor_<
 """
 import argparse
 import csv
+import gzip
+import json
 import math
 import random
 import re
@@ -32,13 +35,31 @@ from tokenizer_stats import load_gold
 WORD = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)*")  # letters only, no digits or punctuation
 
 
-def word_counts(lang, raw, max_types):
+def lines(lang, raw):
+    """Raw text lines: WURA (eval passages) for amh, hau, kin, swa, zul; MADLAD-400 (clean, 10 shards) for lug,
+    which WURA does not cover."""
+    if lang == "lug":
+        for k in range(10):
+            f = hf_hub_download("allenai/madlad-400", f"data-v1p5/lg/clean_docs_v2-{k:05d}-of-00010.jsonl.gz",
+                                repo_type="dataset", local_dir=raw / "madlad")
+            with gzip.open(f, "rt", encoding="utf-8") as fh:
+                for doc in fh:
+                    yield from json.loads(doc)["text"].splitlines()
+        return
     f = hf_hub_download("castorini/wura", f"passages-v1.0/eval/{lang}.txt", repo_type="dataset",
                         local_dir=raw / "wura")
-    c = Counter()
     with open(f, encoding="utf-8") as fh:
-        for line in fh:
-            c.update(w.lower() for w in WORD.findall(line))
+        yield from fh
+
+
+def word_counts(lang, raw, max_types, max_chars=30_000_000):
+    """Word counts from the first max_chars characters (about the size of WURA isiZulu, so languages are comparable)."""
+    c, n = Counter(), 0
+    for line in lines(lang, raw):
+        c.update(w.lower() for w in WORD.findall(line))
+        n += len(line)
+        if n >= max_chars:
+            break
     return c, dict(c.most_common(max_types))
 
 
