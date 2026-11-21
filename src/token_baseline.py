@@ -410,13 +410,14 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == "cuda":
-        amp_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        # bf16 only on GPUs with native support (A100, L4); a T4 would emulate it slowly, so it gets fp16
+        amp_dtype = torch.bfloat16 if torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16
     else:
         amp_dtype = None
         print("WARNING: no GPU found, training will be very slow.")
     (out / "meta.json").write_text(json.dumps({
         "args": vars(args), "torch": torch.__version__,
-        "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None}, indent=2), encoding="utf-8")
+        "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None, "amp": str(amp_dtype)}, indent=2), encoding="utf-8")
 
     tok = AutoTokenizer.from_pretrained(args.model)
     data, labels = load_all(args.task, args.langs, tok, args.max_len, Path(args.raw), limit, args.segment,

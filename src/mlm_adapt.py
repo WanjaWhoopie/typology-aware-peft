@@ -45,11 +45,18 @@ def blocks(lang, tok, raw, n_blocks, block=128, seed=0):
     return out[:n_blocks]
 
 
+def amp_dtype(device):
+    """bf16 on GPUs with native support (A100, L4), fp16 on older ones (T4), none on CPU."""
+    if device.type != "cuda":
+        return None
+    return torch.bfloat16 if torch.cuda.get_device_capability(0)[0] >= 8 else torch.float16
+
+
 def mean_loss(model, data, collate, device, bs=32, n=20):
     model.eval()
     g = torch.Generator().manual_seed(0)
     tot = 0.0
-    with torch.no_grad(), torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda"):
+    with torch.no_grad(), torch.autocast(device_type=device.type, dtype=amp_dtype(device) or torch.float32, enabled=amp_dtype(device) is not None):
         for i in range(n):
             torch.manual_seed(i)  # same masks every time
             batch = collate(data[i * bs:(i + 1) * bs])
@@ -91,6 +98,7 @@ def main():
     before = {l: mean_loss(model, held[l], collate_ids, device) for l in args.langs}
     opt = torch.optim.AdamW([emb], lr=args.lr, weight_decay=0.0)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / 200) * max(0.0, 1 - s / args.steps))
+    scaler = torch.amp.GradScaler(device.type, enabled=amp_dtype(device) == torch.float16)
     t0, i = time.time(), 0
     model.train()
     for step in range(args.steps):
@@ -99,11 +107,13 @@ def main():
             i = 0
         batch = collate_ids(train[i:i + args.bs])
         i += args.bs
-        with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda"):
+        with torch.autocast(device_type=device.type, dtype=amp_dtype(device) or torch.float32, enabled=amp_dtype(device) is not None):
             loss = model(**{k: v.to(device) for k, v in batch.items()}).loss
-        loss.backward()
+        scaler.scale(loss).backward()
+        scaler.unscale_(opt)
         torch.nn.utils.clip_grad_norm_([emb], 1.0)
-        opt.step()
+        scaler.step(opt)
+        scaler.update()
         sched.step()
         opt.zero_grad(set_to_none=True)
         if step % 250 == 0 or step == args.steps - 1:
@@ -118,6 +128,7 @@ def main():
     (out / "config.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
     stats = dict(model=args.model, steps=args.steps, bs=args.bs, lr=args.lr, blocks_per_lang=args.blocks_per_lang,
                  trained="input embeddings only (tied output layer)", seconds=time.time() - t0,
+                 gpu=torch.cuda.get_device_name(0) if device.type == "cuda" else None, amp=str(amp_dtype(device)),
                  heldout_loss_before=before, heldout_loss_after=after)
     (out / "mlm_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     print(json.dumps(stats, indent=2))
