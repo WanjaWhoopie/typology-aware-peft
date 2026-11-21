@@ -19,6 +19,7 @@ Data (downloaded once into data/raw/, which is not committed):
     python src/token_baseline.py --task pos
     python src/token_report.py --task ner
     python src/token_baseline.py --task ner --methods lora --segment results/morfessor_seg   # Morfessor pre-split
+    python src/token_baseline.py --task ner --methods lora --segment results/morfessor_seg --seg_mode inner
 
 Runs are appended to results/<task>/runs.jsonl and results/<task>/results.jsonl, so an interrupted
 run resumes where it stopped (finished combinations are skipped).
@@ -114,11 +115,58 @@ def split_word(word, cuts):
     return [word[a:b] for a, b in zip(c, c[1:])]
 
 
-def encode(sents, tok, l2i, max_len, seg=None):
+def inner_tokens(tok, piece, vocab):
+    """Tokens for a morpheme in the middle of a word: the tokenizer's own pieces, but without the word-start
+    marker on the first one (SentencePiece '▁'), so the word stays one word. If the unmarked piece is not in the
+    vocabulary, it is split greedily into the longest unmarked pieces that are."""
+    toks = tok.tokenize(piece)
+    if not toks or not toks[0].startswith("▁"):
+        return toks
+    head, rest = toks[0][1:], toks[1:]
+    if not head:
+        return rest
+    if head in vocab:
+        return [head] + rest
+    out, i = [], 0
+    while i < len(head):
+        j = next((j for j in range(len(head), i, -1) if head[i:j] in vocab), None)
+        if j is None:
+            out.append(tok.unk_token)
+            i += 1
+        else:
+            out.append(head[i:j])
+            i = j
+    return out + rest
+
+
+def encode_inner(sents, tok, l2i, max_len, seg):
+    """Morpheme cuts inside a word, without extra word starts: tokens never cross a morpheme boundary, but only
+    the first morpheme gets the word-start marker. Labels on the first token of each word, as in encode."""
+    vocab, out = tok.get_vocab(), []
+    for words, tags in sents:
+        ids, labels = [tok.cls_token_id], [-100]
+        for i, w in enumerate(words):
+            parts = split_word(w, seg.get(w.lower(), []))
+            toks = tok.tokenize(parts[0]) + [t for p in parts[1:] for t in inner_tokens(tok, p, vocab)]
+            toks = toks or [tok.unk_token]
+            if len(ids) + len(toks) > max_len - 1:
+                break  # truncation: later words count as wrong in evaluate
+            ids += tok.convert_tokens_to_ids(toks)
+            labels += [l2i[tags[i]]] + [-100] * (len(toks) - 1)
+        ids.append(tok.sep_token_id)
+        labels.append(-100)
+        out.append({"input_ids": ids, "attention_mask": [1] * len(ids), "labels": labels, "tags": tags})
+    return out
+
+
+def encode(sents, tok, l2i, max_len, seg=None, seg_mode="word"):
     """Label the first subword of each word; other subwords get -100 (ignored).
-    seg (optional): lowercased word -> morpheme cut offsets. Each morpheme is then fed to the tokenizer as its own
-    'word' (as if separated by spaces), but labels stay on whole words: only the first subword of the first
-    morpheme carries the word's label, so scores are comparable with the unsegmented baseline."""
+    seg (optional): lowercased word -> morpheme cut offsets. seg_mode 'word': each morpheme is fed to the
+    tokenizer as its own 'word' (as if separated by spaces). seg_mode 'inner': see encode_inner. Either way labels
+    stay on whole words: only the first subword of the word carries its label, so scores are comparable with the
+    unsegmented baseline."""
+    if seg and seg_mode == "inner":
+        return encode_inner(sents, tok, l2i, max_len, seg)
     out = []
     for words, tags in sents:
         if seg:
@@ -140,7 +188,7 @@ def encode(sents, tok, l2i, max_len, seg=None):
     return out
 
 
-def load_all(task, langs, tok, max_len, raw, limit=None, segment=None):
+def load_all(task, langs, tok, max_len, raw, limit=None, segment=None, seg_mode="word"):
     loader = load_ner if task == "ner" else load_pos
     raw_data = {l: loader(l, raw) for l in langs}
     seg = {l: json.loads((Path(segment) / f"{l}.json").read_text(encoding="utf-8")) if segment else None
@@ -157,7 +205,7 @@ def load_all(task, langs, tok, max_len, raw, limit=None, segment=None):
             # a tag seen only in another split or language would have no id: map it to "O" / "X"
             fallback = "O" if task == "ner" else "X"
             sents = [(w, [t if t in l2i else fallback for t in tags]) for w, tags in sents]
-            data[l][split] = encode(sents, tok, l2i, max_len, seg[l])
+            data[l][split] = encode(sents, tok, l2i, max_len, seg[l], seg_mode)
     return data, labels
 
 
@@ -302,17 +350,23 @@ def main():
     ap.add_argument("--segment", default=None,
                     help="folder with <lang>.json (word -> morpheme cuts, from src/morfessor_segment.py): pre-split "
                          "every word into morphemes before tokenizing. Default output then results/<task>_morfessor")
+    ap.add_argument("--seg_mode", default="word", choices=["word", "inner"],
+                    help="word: each morpheme becomes its own word (extra word-start markers); inner: the word stays "
+                         "one word and only its subword cuts are forced onto morpheme boundaries. "
+                         "Default output for inner: results/<task>_morfessor_inner")
     ap.add_argument("--smoke", action="store_true", help="tiny run to test the pipeline")
     args = ap.parse_args()
     args.metric = "f1" if args.task == "ner" else "acc"
     args.collapse = 0.2 if args.task == "ner" else 0.5
     args.epochs = args.epochs or (5 if args.task == "ner" else 10)
-    args.out = args.out or (f"results/{args.task}_morfessor" if args.segment else f"results/{args.task}")
+    tag = ("_morfessor" + ("_inner" if args.seg_mode == "inner" else "")) if args.segment else ""
+    given_out = args.out
+    args.out = args.out or f"results/{args.task}{tag}"
 
     limit = None
     if args.smoke:
         args.langs, args.seeds, args.epochs, args.methods = ["swa", "amh"], [1], 1, ["lora"]
-        args.out = f"results/{args.task}{'_morfessor' if args.segment else ''}_smoke"
+        args.out = given_out or f"results/{args.task}{tag}_smoke"
         limit = 64
 
     out = Path(args.out)
@@ -335,7 +389,8 @@ def main():
         "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None}, indent=2), encoding="utf-8")
 
     tok = AutoTokenizer.from_pretrained(args.model)
-    data, labels = load_all(args.task, args.langs, tok, args.max_len, Path(args.raw), limit, args.segment)
+    data, labels = load_all(args.task, args.langs, tok, args.max_len, Path(args.raw), limit, args.segment,
+                            args.seg_mode)
     print(f"{len(labels)} labels: {labels}")
     print({l: {s: len(v) for s, v in d.items()} for l, d in data.items()})
 

@@ -72,7 +72,7 @@ Details: [`results/ner_morfessor/comparison.md`](results/ner_morfessor/compariso
 | --- | --- | --- |
 | 1. Does feeding morphemes instead of whole words help NER? | Cheapest form of morphology-aware input: no new vocabulary, no new model. | No: −7.0 points pooled, 95% CI [−7.5, −6.4], lower in every language. Smallest loss for zul (−2.8), lug (−4.5) and kin (−4.9); largest for hau (−14.3) and amh (−11.3). Zero-shot transfer drops more (−12.4) |
 | 2. Does it help POS? | Same question on a task that depends more on word form. | No: −3.4 points pooled, 95% CI [−3.6, −3.2], lower in every language (−2.0 kin to −5.9 hau). Zero-shot drops −9.8, most from Amharic and Hausa sources (−16.2) |
-| 3. Why does it hurt? | Decides what to try next. | Not truncation: no test word is cut off in either setting. Most likely each morpheme now looks like a separate word, a form the pretrained model never saw, and LoRA cannot relearn that. Damage is smallest in the agglutinative Bantu languages, where Morfessor's cuts are most often real, and largest in Hausa (little agglutination) and Amharic (its script writes consonant and vowel as one character, so boundaries fall inside characters). Next: keep the boundaries but drop the extra word-start marker |
+| 3. Why does it hurt? | Decides what to try next. | Not truncation: no test word is cut off in either setting. Most likely each morpheme now looks like a separate word, a form the pretrained model never saw, and LoRA cannot relearn that. Damage is smallest in the agglutinative Bantu languages, where Morfessor's cuts are most often real, and largest in Hausa (little agglutination) and Amharic (its script writes consonant and vowel as one character, so boundaries fall inside characters). Running next (`notebooks/variants_colab.ipynb`): keep the boundaries but drop the extra word-start marker, and option B, Serengeti's vocabulary moved into AfroXLMR |
 
 ## Repository structure
 
@@ -101,11 +101,13 @@ Details: [`results/ner_morfessor/comparison.md`](results/ner_morfessor/compariso
 │   ├── morfessor_silver.py        # Morfessor segmenter scored against isiZulu gold
 │   ├── morfessor_segment.py       # Morfessor morpheme splits for the NER and POS words (pre-segmentation)
 │   ├── morfessor_report.py        # pre-segmentation vs plain LoRA, NER and POS
+│   ├── vocab_transfer.py          # option B: Serengeti's vocabulary moved into AfroXLMR (FVT)
 │   └── build_workbook.py          # builds results/results.xlsx from everything below
 ├── notebooks/
 │   ├── sib200_colab.ipynb         # runs the SIB-200 baseline on Colab
 │   ├── token_colab.ipynb          # runs the NER and POS baselines on Colab
-│   └── morfessor_colab.ipynb      # NER and POS with Morfessor pre-segmentation (LoRA) on Colab
+│   ├── morfessor_colab.ipynb      # NER and POS with Morfessor pre-segmentation (LoRA) on Colab
+│   └── variants_colab.ipynb       # follow-ups: Morfessor cuts inside words, Serengeti vocabulary (LoRA)
 └── results/
     ├── results.xlsx               # every number in the project, one tab per experiment
     ├── data_access_report.md      # which datasets and models load
