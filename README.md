@@ -64,6 +64,16 @@ Details: [`results/tokenizers/summary.md`](results/tokenizers/summary.md), workb
 | 3. Do token boundaries fall on morpheme boundaries? (isiZulu only, the one language with gold segmentations: NCHLT, 11,392 words) | RQ1 is about preserving morphemes, not only about fewer tokens.                        | Barely above chance. Boundary F1 is 0.32 to 0.41 across tokenizers (AfroXLMR-76L 0.38), against a chance precision of 0.30; only 3 to 5% of words are split exactly into their morphemes                                                   |
 | 4. Can an unsupervised segmenter (Morfessor) stand in for gold in Swahili, Kinyarwanda and Luganda?                               | No gold segmentations exist for those three languages.                                 | No: trained on 3.3M words of isiZulu web text, its best setting reaches boundary F1 0.45 on held-out gold words (0.48 on all gold words), only a little above the tokenizers. Boundary preservation is therefore reported for isiZulu only |
 
+### 6. Splitting words into morphemes before the tokenizer (WP1 method b, done)
+
+Details: [`results/ner_morfessor/comparison.md`](results/ner_morfessor/comparison.md) and [`results/pos_morfessor/comparison.md`](results/pos_morfessor/comparison.md), workbook tab "Morfessor downstream". Same model, LoRA settings and seeds as the LoRA baselines; only the input differs. Morfessor (corpus weight 0.1, trained per language) splits each word, each morpheme is fed to the unchanged AfroXLMR tokenizer as its own word, and the label stays on the first piece.
+
+| question | why it matters | what we found |
+| --- | --- | --- |
+| 1. Does feeding morphemes instead of whole words help NER? | Cheapest form of morphology-aware input: no new vocabulary, no new model. | No: −7.0 points pooled, 95% CI [−7.5, −6.4], lower in every language. Smallest loss for zul (−2.8), lug (−4.5) and kin (−4.9); largest for hau (−14.3) and amh (−11.3). Zero-shot transfer drops more (−12.4) |
+| 2. Does it help POS? | Same question on a task that depends more on word form. | No: −3.4 points pooled, 95% CI [−3.6, −3.2], lower in every language (−2.0 kin to −5.9 hau). Zero-shot drops −9.8, most from Amharic and Hausa sources (−16.2) |
+| 3. Why does it hurt? | Decides what to try next. | Not truncation: no test word is cut off in either setting. Most likely each morpheme now looks like a separate word, a form the pretrained model never saw, and LoRA cannot relearn that. Damage is smallest in the agglutinative Bantu languages, where Morfessor's cuts are most often real, and largest in Hausa (little agglutination) and Amharic (its script writes consonant and vowel as one character, so boundaries fall inside characters). Next: keep the boundaries but drop the extra word-start marker |
+
 ## Repository structure
 
 ```
@@ -90,6 +100,7 @@ Details: [`results/tokenizers/summary.md`](results/tokenizers/summary.md), workb
 │   ├── tokenizer_stats.py         # fragmentation and morpheme-boundary scores per tokenizer
 │   ├── morfessor_silver.py        # Morfessor segmenter scored against isiZulu gold
 │   ├── morfessor_segment.py       # Morfessor morpheme splits for the NER and POS words (pre-segmentation)
+│   ├── morfessor_report.py        # pre-segmentation vs plain LoRA, NER and POS
 │   └── build_workbook.py          # builds results/results.xlsx from everything below
 ├── notebooks/
 │   ├── sib200_colab.ipynb         # runs the SIB-200 baseline on Colab
@@ -102,6 +113,8 @@ Details: [`results/tokenizers/summary.md`](results/tokenizers/summary.md), workb
     ├── ner/                       # NER runs and tables
     ├── pos/                       # POS runs and tables
     ├── pppl/                      # pseudo-perplexity per language
+    ├── ner_morfessor/             # NER LoRA runs with Morfessor pre-segmentation, comparison
+    ├── pos_morfessor/             # POS LoRA runs with Morfessor pre-segmentation, comparison
     ├── tokenizers/                # fragmentation, morpheme boundaries, Morfessor
     └── morfessor_seg/             # Morfessor word splits per language, used by the pre-segmentation runs
 ```

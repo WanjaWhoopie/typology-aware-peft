@@ -1,0 +1,6 @@
+Morfessor pre-segmentation lowers NER in every language: -7.0 points pooled, 95% CI [-7.5, -6.4]. Zero-shot transfer drops even more (-12.4 points over the 30 off-diagonal cells). Test sentences are never cut off by the 256-token limit in either setting, so the loss comes from the input, not from truncation.
+
+- **Smallest losses** are for the three languages AfroXLMR already splits the most (zul -2.8, lug -4.5, kin -4.9). These are agglutinative Bantu languages, where Morfessor's cuts are most often real morpheme boundaries.
+- **Largest losses** are for hau (-14.3) and amh (-11.3). Hausa has little agglutinative morphology, so most cuts are spurious. Amharic script writes a consonant and a vowel as one character, so a morpheme boundary often falls inside a character and cannot be marked.
+- **Likely cause:** each morpheme enters the model as a separate word (with its own word-start marker), a form the pretrained model never saw. LoRA (0.14% of the weights, embeddings frozen) cannot relearn that. Splitting words while keeping the vocabulary therefore moves the input away from what the model knows, rather than towards morphology.
+- **Next variant worth testing:** keep the morpheme boundaries but drop the extra word-start marker, so a word stays one word and only its subword cuts are forced onto morpheme boundaries.

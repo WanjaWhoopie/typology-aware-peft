@@ -253,6 +253,50 @@ def task_sheet(wb, name, task, folder):
     ws.freeze_panes = "B2"
 
 
+def morfessor_sheet(wb):
+    """WP1 method (b): words split into Morfessor morphemes before the tokenizer, vocabulary unchanged, vs plain LoRA."""
+    from morfessor_report import compare
+    ws = wb.create_sheet("Morfessor downstream")
+    st = list(csv.DictReader(open(R / "morfessor_seg" / "stats.csv", encoding="utf-8")))
+    rows = [[s["lang"], int(s["corpus_words"]), int(s["types_split"]), int(s["task_word_types"]),
+             float(s["morphs_per_word"]), float(s["tokens_per_word_before"]), float(s["tokens_per_word_after"])]
+            for s in st]
+    r = table(ws, 1, ["lang", "raw corpus words", "task word types split", "task word types", "morphemes/word",
+                      "AfroXLMR tokens/word, plain", "AfroXLMR tokens/word, Morfessor first"], rows,
+              [None, "#,##0", "#,##0", "#,##0", "0.00", "0.00", "0.00"],
+              title="Segmentation: how much Morfessor splits the NER + POS words",
+              note="Source: results/morfessor_seg/stats.csv (src/morfessor_segment.py). Morfessor Baseline, corpus weight 0.1, "
+                   "trained per language on WURA (MADLAD-400 for lug); only words seen in its training list are split. "
+                   "Per-word averages over the NER + POS training words. Bold: kin, whose corpus is small (1.1M words).",
+              bold={(i, j) for i, x in enumerate(rows) if x[0] == "kin" for j in (0, 1)})
+    for task, metric in (("ner", "entity F1"), ("pos", "accuracy")):
+        c = compare(task, R)
+        rows = [[x["lang"], x["lora"], x["lora_morfessor"], x["difference"], x["ci_lo"], x["ci_hi"]] for x in c["rows"]]
+        point, lo, hi = c["pooled"]
+        rows.append(["pooled (6 languages, all seeds)", None, None, point, lo, hi])
+        n = len(rows) - 1
+        r = table(ws, r, ["lang", f"LoRA {metric} %", f"LoRA + Morfessor {metric} %", "difference (points)",
+                          "95% CI low", "95% CI high"], rows,
+                  [None, "0.0", "0.0", "+0.0;-0.0;0.0", "+0.0;-0.0;0.0", "+0.0;-0.0;0.0"],
+                  title=f"{task.upper()}: LoRA with Morfessor pre-segmentation minus plain LoRA, in-language",
+                  note=f"Source: results/{task}_morfessor/comparison.csv (src/morfessor_report.py); plain LoRA from "
+                       f"results/{task}. Same model, seeds 1-3 and hyperparameters; only the input differs. CI: paired "
+                       "bootstrap over test sentences. Bold: the pooled answer, and the smallest and largest loss.",
+                  bold={(n, j) for j in range(6)} | {(i, j) for i, _ in best(rows[:n], [3]) | best(rows[:n], [3], min)
+                                                     for j in (0, 3)})
+        r = table(ws, r, ["zero-shot cells", f"LoRA {metric} %", f"LoRA + Morfessor {metric} %", "difference (points)"],
+                  c["zero_shot"], [None, "0.0", "0.0", "+0.0;-0.0;0.0"],
+                  title=f"{task.upper()}: zero-shot transfer, mean over off-diagonal cells",
+                  note="Bold: the overall difference.", bold={(0, 3)})
+        langs = c["langs"]
+        r = table(ws, r, ["source \\ target"] + langs, [[a] + list(c["diff"][i]) for i, a in enumerate(langs)],
+                  [None] + ["+0.0;-0.0;0.0"] * len(langs),
+                  title=f"{task.upper()}: difference per cell (LoRA + Morfessor minus LoRA), rows = source",
+                  note="Diagonal (bold) = in-language.", bold={(i, i + 1) for i in range(len(langs))})
+    ws.cell(r, 1, "Interpretation: results/ner_morfessor/interpretation.md and results/pos_morfessor/interpretation.md").font = FONT
+    style_sheet(ws, {1: 34})
+
+
 def main():
     wb = Workbook()
     ws = wb.active
@@ -261,6 +305,7 @@ def main():
             ["Tokenizer stats", "Fragmentation study: fertility, continued words, token premium, Renyi efficiency, unknown rate"],
             ["SIB-200", "Topic classification baseline: in-language, 6x6 transfer matrices, LoRA vs full"],
             ["NER", "MasakhaNER baseline, same layout"], ["POS", "MasakhaPOS / UD Amharic baseline, same layout"],
+            ["Morfessor downstream", "NER and POS LoRA with words split into Morfessor morphemes first, vs plain LoRA"],
             ["Luganda diagnostics", "Masked-LM pseudo-perplexity per language (why is Luganda weak on SIB-200?)"],
             ["Literature", "Numbers reported in papers: state-of-the-art comparison table for the literature review"],
             ["Runs", "Every training run: settings, best dev score, GPU memory, time"]]
@@ -354,6 +399,9 @@ def main():
         if (R / task / "results.jsonl").exists():
             task_sheet(wb, name, task, R / task)
 
+    if all((R / f"{t}_morfessor" / "results.jsonl").exists() for t in ("ner", "pos")):
+        morfessor_sheet(wb)
+
     ws = wb.create_sheet("Luganda diagnostics")
     sent = read(R / "pppl" / "sentences.jsonl")
     sib = read(R / "sib200" / "results.jsonl")
@@ -387,7 +435,7 @@ def main():
 
     ws = wb.create_sheet("Runs")
     rows = []
-    for task in ("sib200", "ner", "pos"):
+    for task in ("sib200", "ner", "pos", "ner_morfessor", "pos_morfessor"):
         f = R / task / "runs.jsonl"
         if f.exists():
             for x in read(f):
@@ -397,7 +445,7 @@ def main():
     table(ws, 1, ["task", "method", "seed", "source", "best dev score %", "best epoch", "epochs", "learning rate",
                   "batch size", "trainable %", "trainable params", "peak GPU GB", "minutes", "collapsed"], rows,
           [None, None, "0", None, "0.0", "0", "0", "0.0E+00", "0", "0.00", "#,##0", "0.0", "0.0"],
-          title="Every training run", note="Source: results/<task>/runs.jsonl. GPU: NVIDIA L4 (Colab). Bold: collapsed runs.",
+          title="Every training run", note="Source: results/<task>/runs.jsonl (task_morfessor = words split into Morfessor morphemes first). GPU: NVIDIA L4 (Colab). Bold: collapsed runs.",
           bold={(i, j) for i, x in enumerate(rows) if x[-1] for j in range(len(x))})
     style_sheet(ws)
     ws.freeze_panes = "A4"
