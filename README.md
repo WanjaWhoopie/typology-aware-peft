@@ -102,13 +102,15 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
 │   ├── morfessor_silver.py        # Morfessor segmenter scored against isiZulu gold
 │   ├── morfessor_segment.py       # Morfessor morpheme splits for the NER and POS words (pre-segmentation)
 │   ├── variants_report.py         # tokenization variants vs plain LoRA, NER and POS
+│   ├── sweep_report.py            # LoRA sweep on Swahili dev: picks one LoRA setting per task
 │   ├── vocab_transfer.py          # option B: Serengeti's vocabulary moved into AfroXLMR (FVT)
 │   └── build_workbook.py          # builds results/results.xlsx from everything below
 ├── notebooks/
 │   ├── sib200_colab.ipynb         # runs the SIB-200 baseline on Colab
 │   ├── token_colab.ipynb          # runs the NER and POS baselines on Colab
 │   ├── morfessor_colab.ipynb      # NER and POS with Morfessor pre-segmentation (LoRA) on Colab
-│   └── variants_colab.ipynb       # follow-ups: Morfessor cuts inside words, Serengeti vocabulary (LoRA)
+│   ├── variants_colab.ipynb       # follow-ups: Morfessor cuts inside words, Serengeti vocabulary (LoRA)
+│   └── sweep_colab.ipynb          # LoRA sweep (rank, target layers) on Swahili dev; no Drive needed
 └── results/
     ├── results.xlsx               # every number in the project, one tab per experiment
     ├── data_access_report.md      # which datasets and models load

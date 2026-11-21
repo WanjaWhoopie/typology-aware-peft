@@ -20,6 +20,7 @@ Data (downloaded once into data/raw/, which is not committed):
     python src/token_report.py --task ner
     python src/token_baseline.py --task ner --methods lora --segment results/morfessor_seg   # Morfessor pre-split
     python src/token_baseline.py --task ner --methods lora --segment results/morfessor_seg --seg_mode inner
+    python src/token_baseline.py --task ner --methods lora --langs swa --seeds 1 --epochs 20 --patience 3 \n        --no_test --lora_r 16 --lora_targets all --out results/sweep/ner/r16_all   # one sweep config
 
 Runs are appended to results/<task>/runs.jsonl and results/<task>/results.jsonl, so an interrupted
 run resumes where it stopped (finished combinations are skipped).
@@ -41,6 +42,9 @@ LANGS = ["amh", "hau", "kin", "lug", "swa", "zul"]
 NER_URL = "https://raw.githubusercontent.com/masakhane-io/masakhane-ner/main/"
 UD_AMH_URL = "https://raw.githubusercontent.com/UniversalDependencies/UD_Amharic-ATT/master/am_att-ud-test.conllu"
 SPLITS = ("train", "validation", "test")
+# LoRA target modules. qv: attention query and value (the baseline). all: every linear layer in each transformer
+# block (query, key, value, attention output, feed-forward in and out; "dense" matches the last three)
+LORA_TARGETS = {"qv": ["query", "value"], "all": ["query", "key", "value", "dense"]}
 
 
 def set_seed(seed):
@@ -267,7 +271,7 @@ def build_model(name, method, labels, args):
     if method == "lora":
         from peft import LoraConfig, TaskType, get_peft_model
         cfg = LoraConfig(task_type=TaskType.TOKEN_CLS, r=args.lora_r, lora_alpha=2 * args.lora_r,
-                         lora_dropout=0.1, target_modules=["query", "value"])
+                         lora_dropout=0.1, target_modules=LORA_TARGETS[args.lora_targets])
         model = get_peft_model(model, cfg)  # classifier head stays trainable automatically
     return model
 
@@ -291,7 +295,9 @@ def train_one(src, seed, method, data, labels, tok, args, device, amp_dtype):
         torch.cuda.reset_peak_memory_stats()
     t0 = time.time()
     best, best_epoch, best_state = -1.0, 0, None
+    epochs_run = 0
     for epoch in range(1, args.epochs + 1):
+        epochs_run = epoch
         model.train()
         for batch in loader:
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -309,19 +315,24 @@ def train_one(src, seed, method, data, labels, tok, args, device, amp_dtype):
         if dev["score"] > best:
             best, best_epoch = dev["score"], epoch
             best_state = {n: p.detach().cpu().clone() for n, p in model.named_parameters() if n in trainable}
+        elif args.patience and epoch - best_epoch >= args.patience:
+            print(f"    early stop: no dev improvement for {args.patience} epochs", flush=True)
+            break
     model.load_state_dict(best_state, strict=False)
     seconds = time.time() - t0
     peak = torch.cuda.max_memory_allocated() / 1e9 if device.type == "cuda" else None
 
     rows = []
-    for tgt in data:
+    for tgt in ([] if args.no_test else data):
         r = evaluate(args.task, model, data[tgt]["test"], labels, collate, device, amp_dtype)
         rows.append({"task": args.task, "model": args.model, "method": method, "seed": seed,
                      "src": src, "tgt": tgt, "metric": args.metric, **r})
     run = {"task": args.task, "model": args.model, "method": method, "seed": seed, "src": src,
            "n_params": n_all, "n_trainable": n_train, "trainable_pct": 100 * n_train / n_all,
            "peak_mem_gb": peak, "seconds": seconds, "best_epoch": best_epoch, "best_dev": best,
-           "collapsed": best < args.collapse, "lr": lr, "epochs": args.epochs, "bs": args.bs}
+           "collapsed": best < args.collapse, "lr": lr, "epochs": args.epochs, "bs": args.bs,
+           "epochs_run": epochs_run, "patience": args.patience,
+           **({"lora_r": args.lora_r, "lora_targets": args.lora_targets} if method == "lora" else {})}
     if run["collapsed"]:
         print(f"    WARNING: dev {args.metric} below {args.collapse} (model likely collapsed). "
               "Try a lower learning rate or another seed.", flush=True)
@@ -345,6 +356,13 @@ def main():
     ap.add_argument("--lr_full", type=float, default=2e-5)
     ap.add_argument("--lr_lora", type=float, default=3e-4)
     ap.add_argument("--lora_r", type=int, default=8)
+    ap.add_argument("--lora_targets", default="qv", choices=list(LORA_TARGETS),
+                    help="qv: query and value (baseline); all: every linear layer in each block")
+    ap.add_argument("--patience", type=int, default=0,
+                    help="stop when the dev score has not improved for this many epochs (0 = train all epochs). "
+                         "The learning-rate schedule still spans --epochs")
+    ap.add_argument("--no_test", action="store_true",
+                    help="skip the test sets (for tuning: choices are made on dev only)")
     ap.add_argument("--raw", default="data/raw")
     ap.add_argument("--out", default=None, help="default: results/<task>")
     ap.add_argument("--segment", default=None,
@@ -406,9 +424,10 @@ def main():
                 f.write(json.dumps(r) + "\n")
         with open(runs_f, "a", encoding="utf-8") as f:  # written last, so a crash re-runs this job
             f.write(json.dumps(run) + "\n")
-        diag = next(r for r in rows if r["tgt"] == src)
+        diag = next((r["score"] for r in rows if r["tgt"] == src), None)
         elapsed = time.time() - t_start
-        print(f"    test {args.metric} in-language {diag['score']:.3f}; {run['seconds']:.0f}s; "
+        shown = f"test {args.metric} in-language {diag:.3f}" if diag is not None else f"best dev {run['best_dev']:.3f}"
+        print(f"    {shown}; {run['seconds']:.0f}s; "
               f"elapsed {elapsed / 60:.1f} min, about {elapsed / i * (len(todo) - i) / 60:.0f} min left\n", flush=True)
     print(f"Done. Now run: python src/token_report.py --task {args.task}")
 
