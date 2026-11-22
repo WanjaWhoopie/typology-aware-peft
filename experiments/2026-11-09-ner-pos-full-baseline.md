@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-11-09 |
 | **Run by** | Wanjiru (Colab L4), analysis with Claude |
-| **Status** | Done (to be retrained to convergence) |
+| **Status** | Done; retrained to convergence in `2026-11-22-converged-baselines.md` |
 | **Code / commit** | `src/token_baseline.py`, `src/token_report.py`, `notebooks/token_colab.ipynb`; commit 8398cbf |
 
 ## Hypothesis
@@ -37,4 +37,4 @@ Reference scores for word-level tasks, where tokenization should matter more tha
 
 ## Next steps
 
-- [ ] Retrain to convergence with early stopping (`notebooks/baselines_colab.ipynb`, block A)
+- [x] Retrain to convergence with early stopping (`notebooks/baselines_colab.ipynb`, block A)

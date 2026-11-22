@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-11-14 |
 | **Run by** | Wanjiru (Colab L4), analysis with Claude |
-| **Status** | Done (to be retrained to convergence with a tuned LoRA) |
+| **Status** | Done; superseded by `2026-11-22-converged-baselines.md` (converged gap −0.5 NER, −0.2 POS) |
 | **Code / commit** | `notebooks/token_colab.ipynb`; commit 809d7cd |
 
 ## Hypothesis
@@ -33,5 +33,5 @@ LoRA matches full fine-tuning on word-level tasks, as it does on SIB-200.
 
 ## Next steps
 
-- [ ] LoRA sweep on Swahili dev (`notebooks/sweep_colab.ipynb`)
-- [ ] Converged baselines and low-data runs (`notebooks/baselines_colab.ipynb`, blocks A and C)
+- [x] LoRA sweep on Swahili dev (`notebooks/sweep_colab.ipynb`)
+- [x] Converged baselines and low-data runs (`notebooks/baselines_colab.ipynb`, blocks A and C)

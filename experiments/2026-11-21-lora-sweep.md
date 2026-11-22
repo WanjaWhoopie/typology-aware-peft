@@ -38,4 +38,4 @@ Full tables: `results/sweep/summary.md`; chosen settings: `results/sweep/chosen.
 ## Next steps
 
 - [x] Push `results/sweep/chosen.json`
-- [ ] Run `notebooks/baselines_colab.ipynb` and `notebooks/vocab_mlm_colab.ipynb`
+- [x] Run `notebooks/baselines_colab.ipynb` and `notebooks/vocab_mlm_colab.ipynb` (2026-11-22)

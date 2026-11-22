@@ -1,0 +1,41 @@
+{
+  "args": {
+    "task": "ner",
+    "model": "Davlan/afro-xlmr-large-76L",
+    "methods": [
+      "full",
+      "lora"
+    ],
+    "langs": [
+      "kin",
+      "lug",
+      "swa",
+      "zul"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "epochs": 20,
+    "bs": 16,
+    "max_len": 256,
+    "lr_full": 2e-05,
+    "lr_lora": 0.0003,
+    "lora_r": 32,
+    "lora_targets": "qv",
+    "patience": 3,
+    "no_test": false,
+    "raw": "data/raw",
+    "out": "/content/results/ner_conv",
+    "segment": null,
+    "seg_mode": "word",
+    "train_size": null,
+    "smoke": false,
+    "metric": "f1",
+    "collapse": 0.2
+  },
+  "torch": "2.14.1+cu130",
+  "gpu": "NVIDIA L4",
+  "amp": "torch.bfloat16"
+}

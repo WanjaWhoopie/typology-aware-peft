@@ -5,7 +5,8 @@
 
 Rebuild after any new run; the workbook is generated, so never edit it by hand. Hand-curated content
 (tokenizer availability, literature numbers) lives in the lists below. The .md files stay as interpretation.
-Tabs: README, Tokenizer availability, Tokenizer stats, SIB-200, NER, POS, Luganda diagnostics, Literature, Runs.
+Tabs: README, Tokenizer availability, Tokenizer stats, SIB-200, NER, POS, Tokenization variants,
+Converged and follow-ups, Luganda diagnostics, Literature, Runs.
 """
 import csv
 import json
@@ -318,6 +319,86 @@ def variants_sheet(wb):
     style_sheet(ws, {1: 34, 2: 40})
 
 
+def gap(folder, skip_collapsed=True):
+    """Per-language in-language full and LoRA scores and 12-cell zero-shot means; collapsed runs left out."""
+    runs = [json.loads(x) for x in (folder / "runs.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    bad = {(x["method"], x["src"], x["seed"]) for x in runs if x["collapsed"]} if skip_collapsed else set()
+    d = defaultdict(list)
+    for x in read(folder / "results.jsonl"):
+        if (x["method"], x["src"], x["seed"]) not in bad:
+            d[(x["method"], x["src"], x["tgt"])].append(x["score"] * 100)
+    langs = [l for l in ORDER if ("lora", l, l) in d and ("full", l, l) in d and l in ("kin", "lug", "swa", "zul")]
+    full = {l: np.mean(d[("full", l, l)]) for l in langs}
+    lora = {l: np.mean(d[("lora", l, l)]) for l in langs}
+    zs = {m: np.mean([np.mean(d[(m, a, b)]) for a in langs for b in langs if a != b]) for m in ("full", "lora")}
+    return langs, full, lora, zs, bad
+
+
+def followups_sheet(wb):
+    """Converged baselines (kin lug swa zul), low-data runs, isiZulu capital split, masked-LM runs."""
+    from variants_report import compare
+    ws = wb.create_sheet("Converged and follow-ups")
+    chosen = json.loads((R / "sweep" / "chosen.json").read_text())
+    r = table(ws, 1, ["setting", "value"], [
+        ["languages", "kin, lug, swa, zul (scope from 21 Nov 2026)"],
+        ["training", "up to 20 epochs, early stopping after 3 epochs without dev gain (low-data: 40 and 5)"],
+        ["LoRA (from the sweep on Swahili dev)", f"NER r={chosen['ner']['lora_r']} {chosen['ner']['lora_targets']}, "
+                                                 f"POS r={chosen['pos']['lora_r']} {chosen['pos']['lora_targets']}"],
+        ["low-data", "a fixed random subset of the training set (the same for every seed and method)"]],
+        title="Converged baselines and follow-up runs",
+        note="Sources: results/<task>_conv, _n100, _n1000, _capsplit, _serengeti_mlm, _afroxlmr_mlm and "
+             "results/sweep. Interpretation: experiments/2026-11-22-converged-baselines.md, results/mlm_summary.md.")
+    for task, metric in (("ner", "entity F1"), ("pos", "accuracy")):
+        old = gap(R / task)
+        new = gap(R / f"{task}_conv")
+        rows = [[l, old[1][l], old[2][l], old[2][l] - old[1][l], new[1][l], new[2][l], new[2][l] - new[1][l]]
+                for l in new[0]]
+        rows.append(["mean", *(np.mean([x[k] for x in rows]) for k in range(1, 7))])
+        r = table(ws, r, ["lang", "first full", "first LoRA r=8", "first gap", "converged full", "converged LoRA",
+                          "converged gap"], rows, [None] + ["0.0", "0.0", "+0.0;-0.0;0.0"] * 2,
+                  title=f"{task.upper()}: LoRA minus full fine-tuning, first baselines vs converged ({metric} %)",
+                  note="First: NER 5 epochs, POS 10 epochs, LoRA r=8 qv (the 4 Bantu languages of the 6 run). "
+                       "Converged: see settings above. Bold: the mean gaps.",
+                  bold={(len(rows) - 1, 3), (len(rows) - 1, 6)})
+    rows = []
+    for name, size in (("ner_n100", 100), ("ner_n1000", 1000), ("ner_conv", "all"),
+                       ("pos_n100", 100), ("pos_conv", "all")):
+        if (R / name / "runs.jsonl").exists():
+            langs, full, lora, zs, bad = gap(R / name)
+            rows.append([name.split("_")[0].upper(), size, np.mean(list(full.values())), np.mean(list(lora.values())),
+                         np.mean([lora[l] - full[l] for l in langs]), zs["lora"] - zs["full"],
+                         ", ".join(f"{m} {s} seed {k}" for m, s, k in sorted(bad)) or ""])
+    r = table(ws, r, ["task", "training sentences", "full", "LoRA", "LoRA minus full, in-language",
+                      "LoRA minus full, zero-shot (12 cells)", "collapsed runs left out"], rows,
+              [None, None, "0.0", "0.0", "+0.0;-0.0;0.0", "+0.0;-0.0;0.0"],
+              title="Does the LoRA gap follow training-set size? (in-language means over 4 languages)",
+              note="Converged settings throughout. Bold: the in-language gap; no clean trend with size.",
+              bold={(i, 4) for i in range(len(rows))})
+    if (R / "ner_capsplit" / "results.jsonl").exists():
+        c = compare("ner", "capsplit", R, base="ner_conv")
+        L = c["langs"]
+        r = table(ws, r, ["source \\ target"] + L, [[a] + list(c["diff"][i]) for i, a in enumerate(L)],
+                  [None] + ["+0.0;-0.0;0.0"] * len(L),
+                  title="NER, isiZulu capital split (uKaunda fed as u + Kaunda) minus converged LoRA, per cell",
+                  note="Only isiZulu words are split (971 of 3,007 test entity words). The label stays on the first "
+                       "piece (the prefix u), so this does not yet test labelling the name. Bold: isiZulu row and column.",
+                  bold={(i, j) for i, a in enumerate(L) for j in range(1, len(L) + 1)
+                        if a == "zul" or L[j - 1] == "zul"})
+    rows = []
+    for task in ("ner", "pos"):
+        for v, b, label in (("serengeti_mlm", "afroxlmr_mlm", "Serengeti vocabulary + MLM vs AfroXLMR + MLM"),
+                            ("afroxlmr_mlm", "conv", "AfroXLMR + MLM vs converged LoRA")):
+            if all((R / f"{task}_{x}" / "results.jsonl").exists() for x in (v, b)):
+                c = compare(task, v, R, base=f"{task}_{b}")
+                rows.append([task.upper(), label, *c["pooled"], c["zero_shot"][0][3]])
+    if rows:
+        table(ws, r, ["task", "comparison", "in-language difference", "95% CI low", "95% CI high",
+                      "zero-shot difference (12 cells)"], rows, [None, None] + ["+0.0;-0.0;0.0"] * 4,
+              title="Masked-LM step: vocabulary effect and masked-LM effect (points)",
+              note="CI: bootstrap over test sentences (paired) and seeds. Details in results/mlm_summary.md.")
+    style_sheet(ws, {1: 34, 2: 40})
+
+
 def main():
     wb = Workbook()
     ws = wb.active
@@ -327,6 +408,7 @@ def main():
             ["SIB-200", "Topic classification baseline: in-language, 6x6 transfer matrices, LoRA vs full"],
             ["NER", "MasakhaNER baseline, same layout"], ["POS", "MasakhaPOS / UD Amharic baseline, same layout"],
             ["Tokenization variants", "NER and POS LoRA with Morfessor cuts or Serengeti's vocabulary, vs plain LoRA"],
+            ["Converged and follow-ups", "Converged baselines, LoRA gap by training size, isiZulu capital split, masked-LM runs"],
             ["Luganda diagnostics", "Masked-LM pseudo-perplexity per language (why is Luganda weak on SIB-200?)"],
             ["Literature", "Numbers reported in papers: state-of-the-art comparison table for the literature review"],
             ["Runs", "Every training run: settings, best dev score, GPU memory, time"]]
@@ -422,6 +504,8 @@ def main():
 
     if (R / "ner_morfessor" / "results.jsonl").exists():
         variants_sheet(wb)
+    if (R / "ner_conv" / "results.jsonl").exists():
+        followups_sheet(wb)
 
     ws = wb.create_sheet("Luganda diagnostics")
     sent = read(R / "pppl" / "sentences.jsonl")
@@ -456,17 +540,27 @@ def main():
 
     ws = wb.create_sheet("Runs")
     rows = []
-    for task in ("sib200", "ner", "pos", *(f"{t}_{v}" for v in ("morfessor", "morfessor_inner", "serengeti_fvt") for t in ("ner", "pos"))):
+    folders = ["sib200", "ner", "pos"] + [f"{t}_{v}" for v in ("morfessor", "morfessor_inner", "serengeti_fvt", "conv",
+                                                                "capsplit", "n100", "n1000", "serengeti_mlm", "afroxlmr_mlm")
+                                          for t in ("ner", "pos")]
+    for task in folders:
         f = R / task / "runs.jsonl"
         if f.exists():
+            meta = json.loads((R / task / "meta.json").read_text()) if (R / task / "meta.json").exists() else {}
+            gpu = (meta.get("gpu") or "NVIDIA L4").replace("NVIDIA ", "")
             for x in read(f):
                 rows.append([task, x["method"], x["seed"], x["src"], x.get("best_dev", x.get("best_dev_acc")) * 100,
-                             x["best_epoch"], x["epochs"], x["lr"], x["bs"], x["trainable_pct"], x["n_trainable"],
-                             x["peak_mem_gb"], x["seconds"] / 60, "yes" if x["collapsed"] else ""])
-    table(ws, 1, ["task", "method", "seed", "source", "best dev score %", "best epoch", "epochs", "learning rate",
-                  "batch size", "trainable %", "trainable params", "peak GPU GB", "minutes", "collapsed"], rows,
-          [None, None, "0", None, "0.0", "0", "0", "0.0E+00", "0", "0.00", "#,##0", "0.0", "0.0"],
-          title="Every training run", note="Source: results/<task>/runs.jsonl (task_<variant> = tokenization variants, see that tab). GPU: NVIDIA L4 (Colab). Bold: collapsed runs.",
+                             x["best_epoch"], x.get("epochs_run", x["epochs"]), x["epochs"], x["lr"], x["bs"],
+                             x.get("lora_r", 8) if x["method"] == "lora" else None,
+                             x.get("lora_targets", "qv") if x["method"] == "lora" else None,
+                             x.get("train_sentences"), x["trainable_pct"], x["n_trainable"],
+                             x["peak_mem_gb"], x["seconds"] / 60, gpu, "yes" if x["collapsed"] else ""])
+    table(ws, 1, ["task", "method", "seed", "source", "best dev score %", "best epoch", "epochs run", "epoch limit",
+                  "learning rate", "batch size", "LoRA rank", "LoRA targets", "training sentences", "trainable %",
+                  "trainable params", "peak GPU GB", "minutes", "GPU", "collapsed"], rows,
+          [None, None, "0", None, "0.0", "0", "0", "0", "0.0E+00", "0", "0", None, "#,##0", "0.00", "#,##0", "0.0", "0.0"],
+          title="Every training run", note="Source: results/<task>/runs.jsonl and meta.json (task_<variant>: see the "
+                                           "Tokenization variants and Converged and follow-ups tabs). Bold: collapsed runs.",
           bold={(i, j) for i, x in enumerate(rows) if x[-1] for j in range(len(x))})
     style_sheet(ws)
     ws.freeze_panes = "A4"

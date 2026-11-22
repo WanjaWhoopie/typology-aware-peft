@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Period**       | October 2026 – January 2027 (4 months)                                                                                                            |
 | **Last updated** | 2026-11-21 (status only; the plan itself is unchanged until agreed with the supervisor) |
-| **Status** | Month 2: baselines (SIB-200, NER, POS), tokenizer fragmentation study and first RQ1 tokenization variants done; LoRA sweep done (NER r=32 qv, POS r=8 qv); baselines being retrained to convergence. RQ2 to RQ4 not started. Several decisions are open with the supervisor |
+| **Status** | Month 2: baselines (SIB-200, NER, POS), tokenizer fragmentation study and first RQ1 tokenization variants done; LoRA sweep done (NER r=32 qv, POS r=8 qv); converged baselines done (LoRA within 0.5 points of full); Serengeti vocabulary + masked-LM done. RQ2 to RQ4 not started. Several decisions are open with the supervisor |
 | **Languages**    | Core (all work packages): Kiswahili, Kinyarwanda, Luganda, isiZulu (Bantu). Contrast for RQ2 and the baselines only: Amharic, Hausa (Afroasiatic). Since 2026-11-21 new runs use the four Bantu languages only, until the supervisor decides otherwise |
 
 > Venue dates marked **(expected)** have not been announced yet and are based on earlier editions. Check the linked pages before planning around them. Venue links and dates were last checked on 2026-09-29. Dataset coverage marked ✓ was checked against the Hugging Face dataset cards (and the UD page for Amharic) on 2026-10-05.
