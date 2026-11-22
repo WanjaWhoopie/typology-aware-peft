@@ -1,0 +1,5 @@
+task,variant,lang,lora,variant_score,difference,ci_lo,ci_hi
+ner,serengeti_mlm,kin,86.11,84.915,-1.195,-2.919,0.831
+ner,serengeti_mlm,lug,89.544,88.209,-1.334,-2.844,0.081
+ner,serengeti_mlm,swa,92.211,91.436,-0.775,-1.277,-0.321
+ner,serengeti_mlm,zul,88.934,86.431,-2.504,-4.25,-0.918

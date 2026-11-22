@@ -75,6 +75,13 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
 | 3. Option B: does Serengeti's vocabulary, moved into AfroXLMR, help? | Serengeti splits least for all six languages (Tokenizer stats tab). | Not with frozen embeddings: NER −5.8 [−6.6, −5.1], POS −2.3 [−2.5, −2.1], although words get about a third shorter. A third to a half of the tokens carry averaged vectors that LoRA cannot change. Hypothesis (chosen after the fact, 6 languages): the NER loss grows with the share of new tokens in entity words. Lead: transfer into isiZulu rises (lug→zul +7.9, swa→zul +7.5) |
 | 4. What does this mean for RQ1? | Decides the next experiments. | Without adaptation, input changes cost accuracy, least when the input stays close to pretraining. Whether morpheme-aligned input helps once the model can adapt is still open. Next: an adaptation ladder (frozen, trainable embeddings, short masked-LM pass), a scrambled-cut control, and converged baselines |
 
+**Option B with the masked-LM step (done 2026-11-22).** Details: [`results/mlm_summary.md`](results/mlm_summary.md). Both models get the same embedding-only masked-LM pass (same text and steps), then the tuned LoRA from the sweep, kin, lug, swa, zul, 3 seeds; the only difference is the vocabulary.
+
+| question | what we found |
+| --- | --- |
+| 5. With its embeddings trained, does Serengeti's vocabulary help? | Not in-language: NER −1.5 [−2.2, −0.7], POS −0.9 [−1.1, −0.6] against AfroXLMR with the same masked-LM pass, lower in every language. The gap is much smaller than with frozen embeddings (different baselines, so only roughly comparable). The new embeddings look undertrained: held-out masked-LM loss 3.2 to 3.6 against 1.2 to 1.4 |
+| 6. Does the isiZulu transfer lead hold against a matched control? | Yes, for NER only: lug→zul +9.5 [+7.3, +11.7], swa→zul +12.4 [+10.3, +14.6], the same two cells as with frozen embeddings. Transfer into Kinyarwanda falls (lug→kin −4.7), so overall NER transfer moves little (+1.4 over 12 cells). POS transfer into isiZulu does not change. Points to how isiZulu writes names (uKaunda), tested next by the capital split |
+
 ## Repository structure
 
 ```
@@ -104,6 +111,7 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
 │   ├── variants_report.py         # tokenization variants vs plain LoRA, NER and POS
 │   ├── sweep_report.py            # LoRA sweep on Swahili dev: picks one LoRA setting per task
 │   ├── mlm_adapt.py               # short masked-LM pass training only the input embeddings
+│   ├── mlm_report.py              # Serengeti + masked-LM vs AfroXLMR + masked-LM (and vs the converged baseline)
 │   ├── capsplit_segment.py        # isiZulu prefix + capital words (uKaunda) split at the capital
 │   ├── scramble_segment.py        # scrambled-cut control: Morfessor's cut counts at random positions
 │   ├── vocab_transfer.py          # option B: Serengeti's vocabulary moved into AfroXLMR (FVT)
@@ -126,6 +134,9 @@ Details: [`results/variants_summary.md`](results/variants_summary.md) and [`resu
     ├── <task>_morfessor/          # NER / POS LoRA, Morfessor morphemes as separate words
     ├── <task>_morfessor_inner/    # NER / POS LoRA, Morfessor cuts inside words
     ├── <task>_serengeti_fvt/      # NER / POS LoRA, Serengeti's vocabulary moved into AfroXLMR
+    ├── <task>_serengeti_mlm/      # NER / POS tuned LoRA, Serengeti's vocabulary + masked-LM step
+    ├── <task>_afroxlmr_mlm/       # NER / POS tuned LoRA, AfroXLMR + the same masked-LM step (control)
+    ├── mlm_summary.md             # Serengeti + masked-LM against its control, with interpretation
     ├── variants_summary.md        # all tokenization variants against plain LoRA, with interpretation
     ├── tokenizers/                # fragmentation, morpheme boundaries, Morfessor
     ├── morfessor_seg/             # Morfessor word splits per language, used by the pre-segmentation runs

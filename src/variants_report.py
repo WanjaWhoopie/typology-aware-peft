@@ -43,9 +43,12 @@ def available(task, results=Path("results")):
     return [v for v in VARIANTS if (results / f"{task}_{v}" / "results.jsonl").exists()]
 
 
-def compare(task, variant, results=Path("results")):
-    """In-language rows, pooled difference with CI, zero-shot group means and the per-cell difference matrix."""
-    base_sc, base_it = load(results / task / "results.jsonl")
+def compare(task, variant, results=Path("results"), base=None):
+    """In-language rows, pooled difference with CI, zero-shot group means and the per-cell difference matrix.
+
+    base: folder of the comparison run (default results/<task>, the plain LoRA baseline).
+    """
+    base_sc, base_it = load(results / (base or task) / "results.jsonl")
     var_sc, var_it = load(results / f"{task}_{variant}" / "results.jsonl")
     langs = [l for l in ORDER if (l, l) in var_sc]
     rows, diffs = [], []
@@ -67,8 +70,9 @@ def compare(task, variant, results=Path("results")):
     other = [i for i, l in enumerate(langs) if l not in BANTU]
 
     def groups(M):
+        cross = [M[i, j] for i in other for j in bantu]
         return [M[off].mean(), np.mean([M[i, j] for i in bantu for j in bantu if i != j]),
-                np.mean([M[i, j] for i in other for j in bantu])]
+                np.mean(cross) if cross else float("nan")]
     zs = [[name, b, s, s - b] for name, b, s in zip(["all 30 cells", "Bantu -> Bantu", "amh/hau -> Bantu"],
                                                       groups(Mb), groups(Ms))]
     return dict(langs=langs, rows=rows, pooled=pooled, zero_shot=zs, diff=Ms - Mb)

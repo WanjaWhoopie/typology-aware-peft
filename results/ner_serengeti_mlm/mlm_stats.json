@@ -1,0 +1,24 @@
+{
+  "model": "/content/afroxlmr_serengeti_fvt",
+  "steps": 3000,
+  "bs": 32,
+  "micro_bs": 8,
+  "lr": 0.0005,
+  "blocks_per_lang": 20000,
+  "trained": "input embeddings only (tied output layer)",
+  "seconds": 1093.6887159347534,
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "amp": "torch.bfloat16",
+  "heldout_loss_before": {
+    "kin": 7.7486360490322115,
+    "lug": 7.491523969173431,
+    "swa": 5.955186921358108,
+    "zul": 6.97102370262146
+  },
+  "heldout_loss_after": {
+    "kin": 3.5763208150863646,
+    "lug": 3.3392850011587143,
+    "swa": 3.217861554026604,
+    "zul": 3.405663189291954
+  }
+}

@@ -34,6 +34,6 @@
 
 ## Next steps
 
-- [ ] Serengeti vocabulary + masked-LM step, with an AfroXLMR + masked-LM control (`notebooks/vocab_mlm_colab.ipynb`)
+- [x] Serengeti vocabulary + masked-LM step, with an AfroXLMR + masked-LM control (`2026-11-22-vocab-mlm.md`) (`notebooks/vocab_mlm_colab.ipynb`)
 - [ ] isiZulu capital split (`notebooks/baselines_colab.ipynb`, block B)
 - [ ] Scrambled-cut control (block D, awaiting supervisor)

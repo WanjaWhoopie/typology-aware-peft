@@ -1,0 +1,24 @@
+{
+  "model": "Davlan/afro-xlmr-large-76L",
+  "steps": 3000,
+  "bs": 32,
+  "micro_bs": 8,
+  "lr": 0.0005,
+  "blocks_per_lang": 20000,
+  "trained": "input embeddings only (tied output layer)",
+  "seconds": 1169.270873785019,
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "amp": "torch.bfloat16",
+  "heldout_loss_before": {
+    "kin": 1.2993350438773632,
+    "lug": 1.5529195673763752,
+    "swa": 1.3446700781583787,
+    "zul": 1.2916161846369505
+  },
+  "heldout_loss_after": {
+    "kin": 1.218948894739151,
+    "lug": 1.4167085580527783,
+    "swa": 1.2794292241334915,
+    "zul": 1.3015267994254827
+  }
+}
